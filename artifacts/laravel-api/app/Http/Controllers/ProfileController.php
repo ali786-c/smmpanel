@@ -117,12 +117,13 @@ class ProfileController extends Controller
         ]);
 
         $user = auth()->user();
-        $prefs = \App\Models\NotificationPreference::updateOrCreate(
+        $prefs = \App\Models\NotificationPreference::firstOrCreate(
             ['user_id' => $user->id],
-            array_merge(['id' => (string) \Illuminate\Support\Str::uuid()], $validated)
+            ['id' => (string) \Illuminate\Support\Str::uuid()]
         );
+        $prefs->update($validated);
 
-        return response()->json($prefs);
+        return response()->json($prefs->fresh());
     }
 
     private function getLoyaltyTier(float $totalSpent): string

@@ -15,6 +15,7 @@ use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AdminOrderController extends Controller
@@ -56,7 +57,7 @@ class AdminOrderController extends Controller
     {
         $order = Order::findOrFail($id);
         $validated = $request->validate([
-            'status' => 'nullable|in:Pending,Processing,In Progress,Completed,Partial,Cancelled,Refunded',
+            'status' => 'nullable|in:Pending,Processing,In progress,Completed,Partial,Cancelled,Refunded',
             'start_count' => 'nullable|integer',
             'remains' => 'nullable|integer',
             'external_order_id' => 'nullable|integer',
@@ -219,7 +220,7 @@ class AdminOrderController extends Controller
             return response()->json(['error' => 'Provider not configured'], 422);
         }
 
-        $activeOrders = Order::whereIn('status', ['Pending', 'Processing', 'In Progress'])
+        $activeOrders = Order::whereIn('status', ['Pending', 'Processing', 'In progress'])
             ->whereNotNull('external_order_id')
             ->take(100)
             ->get();
@@ -265,7 +266,7 @@ class AdminOrderController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                \Log::error('Order sync failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+                Log::error('Order sync failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
             }
         }
 

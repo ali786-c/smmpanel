@@ -60,15 +60,14 @@ class AiSupportTriage extends Command
             }
 
             TicketMessage::create([
-                'id' => (string) Str::uuid(),
-                'ticket_id' => $ticket->id,
-                'sender_id' => null,
-                'sender_type' => 'admin',
-                'message' => $response,
+                'id'         => (string) Str::uuid(),
+                'ticket_id'  => $ticket->id,
+                'sender'     => 'admin',
+                'content'    => $response,
                 'created_at' => now(),
             ]);
 
-            $ticket->update(['status' => 'answered']);
+            $ticket->update(['status' => 'in_progress']);
             $triaged++;
         }
 

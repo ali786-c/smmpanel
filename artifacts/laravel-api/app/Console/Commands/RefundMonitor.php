@@ -81,24 +81,26 @@ class RefundMonitor extends Command
                 $wallet->increment('balance', $refundAmount);
 
                 WalletTransaction::create([
-                    'id' => (string) Str::uuid(),
-                    'user_id' => $order->user_id,
-                    'type' => 'refund',
-                    'amount' => $refundAmount,
-                    'description' => "Refund for order #{$order->id}",
-                    'reference' => $order->id,
-                    'created_at' => now(),
+                    'id'             => (string) Str::uuid(),
+                    'user_id'        => $order->user_id,
+                    'type'           => 'refund',
+                    'amount'         => $refundAmount,
+                    'description'    => "Refund for order #{$order->id}",
+                    'reference_id'   => $order->id,
+                    'payment_method' => 'system',
+                    'status'         => 'completed',
+                    'created_at'     => now(),
                 ]);
 
                 $order->update(['refund_status' => 'refunded']);
 
                 RefundLog::create([
-                    'id' => (string) Str::uuid(),
+                    'id'       => (string) Str::uuid(),
                     'order_id' => $order->id,
-                    'user_id' => $order->user_id,
-                    'amount' => $refundAmount,
-                    'reason' => 'Automated refund: order cancelled',
-                    'initiated_by' => 'system',
+                    'user_id'  => $order->user_id,
+                    'amount'   => $refundAmount,
+                    'reason'   => 'Automated refund: order cancelled',
+                    'status'   => 'completed',
                     'created_at' => now(),
                 ]);
 

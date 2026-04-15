@@ -23,7 +23,8 @@ class SyncOrderStatuses extends Command
 
         $limit = (int) $this->option('limit');
 
-        $pendingOrders = Order::whereIn('status', ['Pending', 'In progress', 'Processing'])
+        $pendingOrders = Order::with(['user.wallet'])
+            ->whereIn('status', ['Pending', 'In progress', 'Processing'])
             ->whereNotNull('provider_order_id')
             ->take($limit)
             ->get();
@@ -99,13 +100,15 @@ class SyncOrderStatuses extends Command
                 $order->user?->wallet?->increment('balance', $refundAmount);
 
                 \App\Models\WalletTransaction::create([
-                    'id' => (string) \Illuminate\Support\Str::uuid(),
-                    'user_id' => $order->user_id,
-                    'type' => 'refund',
-                    'amount' => $refundAmount,
-                    'description' => "Partial refund for order #{$order->id} ({$remains} remaining)",
-                    'reference' => $order->id,
-                    'created_at' => now(),
+                    'id'             => (string) \Illuminate\Support\Str::uuid(),
+                    'user_id'        => $order->user_id,
+                    'type'           => 'refund',
+                    'amount'         => $refundAmount,
+                    'description'    => "Partial refund for order #{$order->id} ({$remains} remaining)",
+                    'reference_id'   => $order->id,
+                    'payment_method' => 'system',
+                    'status'         => 'completed',
+                    'created_at'     => now(),
                 ]);
 
                 $order->update(['refund_status' => 'partial']);

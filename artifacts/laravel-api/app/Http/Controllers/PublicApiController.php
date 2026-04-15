@@ -11,6 +11,7 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class PublicApiController extends Controller
@@ -216,10 +217,10 @@ class PublicApiController extends Controller
         $providerKey = config('services.provider.api_key');
 
         if ($providerUrl && $providerKey && $order->external_order_id) {
-            $res = \Http::post($providerUrl, [
-                'key' => $providerKey,
+            $res = Http::timeout(15)->asForm()->post($providerUrl, [
+                'key'    => $providerKey,
                 'action' => 'refill',
-                'order' => $order->external_order_id,
+                'order'  => $order->external_order_id,
             ]);
             return response()->json($res->json());
         }

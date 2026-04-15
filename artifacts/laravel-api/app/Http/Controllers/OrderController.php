@@ -10,6 +10,8 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class OrderController extends Controller
@@ -160,23 +162,24 @@ class OrderController extends Controller
         }
 
         try {
-            $response = \Http::post($providerUrl, [
-                'key' => $providerKey,
-                'action' => 'add',
-                'service' => $service->external_service_id,
-                'link' => $order->link,
+            $response = Http::timeout(15)->asForm()->post($providerUrl, [
+                'key'      => $providerKey,
+                'action'   => 'add',
+                'service'  => $service->external_service_id,
+                'link'     => $order->link,
                 'quantity' => $order->quantity,
             ]);
 
             $data = $response->json();
             if (isset($data['order'])) {
                 $order->update([
-                    'external_order_id' => $data['order'],
-                    'status' => 'Processing',
+                    'external_order_id'  => $data['order'],
+                    'provider_order_id'  => (string) $data['order'],
+                    'status'             => 'In progress',
                 ]);
             }
         } catch (\Exception $e) {
-            \Log::error('Provider order failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            Log::error('Provider order failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
         }
     }
 
