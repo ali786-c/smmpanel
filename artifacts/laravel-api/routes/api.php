@@ -36,8 +36,9 @@ Route::post('/v2', [PublicApiController::class, 'handle']);
 
 // ─── Auth Routes ───────────────────────────────────
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+    // Threat check on new account creation and login
+    Route::post('/register', [AuthController::class, 'register'])->middleware('threat');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('threat');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 

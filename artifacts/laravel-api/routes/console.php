@@ -33,3 +33,9 @@ Schedule::command('automation:price-watch --min-margin=10')->everySixHours();
 
 // Daily digest: morning profit summary pushed to all admins at 08:00
 Schedule::command('automation:daily-digest')->dailyAt('08:00');
+
+// Security: refresh Tor exit-node list from the Tor Project once a day
+Schedule::command('security:refresh-tor-list')->dailyAt('03:00');
+
+// Security: scan ticket messages for malicious content / Tor-IP abuse every 15 min
+Schedule::command('automation:security-monitor')->everyFifteenMinutes();

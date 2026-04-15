@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Profile;
 use App\Models\Referral;
 use App\Models\User;
@@ -90,6 +91,17 @@ class AuthController extends Controller
         if ($user->isBanned()) {
             return response()->json(['error' => 'Your account has been suspended. Contact support.'], 403);
         }
+
+        // Log the login IP so SecurityMonitor can scan it
+        ActivityLog::create([
+            'id'          => (string) Str::uuid(),
+            'actor_id'    => $user->id,
+            'action'      => 'login',
+            'target_type' => 'user',
+            'target_id'   => $user->id,
+            'ip_address'  => $request->ip(),
+            'created_at'  => now(),
+        ]);
 
         return response()->json([
             'token' => $token,
