@@ -11,9 +11,10 @@ class Order extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'user_id', 'service_id', 'external_order_id', 'link',
+        'id', 'user_id', 'service_id', 'external_order_id', 'provider_order_id', 'link',
         'quantity', 'cost', 'provider_cost', 'status', 'start_count',
-        'remains', 'coupon_id', 'notes',
+        'remains', 'coupon_id', 'notes', 'refund_status',
+        'speedup_requested_at', 'cancel_requested_at', 'cancel_request_status', 'stale_pinged_at',
     ];
 
     protected $casts = [

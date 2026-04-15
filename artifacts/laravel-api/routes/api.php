@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AdminServiceController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminTicketController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\OrderActionController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BlogController;
@@ -75,6 +76,11 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/analytics', [OrderController::class, 'analytics']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
+
+    // Order Actions (cancel / speedup / refill requests → auto-escalate to JustPanel)
+    Route::post('/orders/{id}/request-cancel',  [OrderActionController::class, 'requestCancel']);
+    Route::post('/orders/{id}/request-speedup', [OrderActionController::class, 'requestSpeedup']);
+    Route::post('/orders/{id}/request-refill',  [OrderActionController::class, 'requestRefill']);
 
     // Wallet
     Route::get('/wallet', [WalletController::class, 'index']);

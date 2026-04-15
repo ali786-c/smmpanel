@@ -12,6 +12,9 @@ Artisan::command('inspire', function () {
 // Sync order statuses from provider every 5 minutes
 Schedule::command('automation:sync-orders --limit=200')->everyFiveMinutes();
 
+// Provider escalation: detect stale orders, ping JustPanel, open tickets, forward cancel requests
+Schedule::command('automation:provider-escalation')->everyThirtyMinutes();
+
 // Refund monitor: check and auto-refund cancelled orders every hour
 Schedule::command('automation:refund-monitor')->hourly();
 
