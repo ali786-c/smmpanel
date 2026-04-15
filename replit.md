@@ -75,6 +75,41 @@ SESSION_SECRET=     # Already set
 JWT_SECRET=         # Already set
 ```
 
+## Landing Page Artifact
+
+**Location:** `artifacts/landing/` — React + Vite, port 18150, preview at `/landing/`
+
+### Design
+Dark, electric, premium SaaS landing page for emazingSM. 7 sections:
+- Hero with animated gradient background
+- Platform icons (Instagram, TikTok, YouTube, Twitter/X) via react-icons/si
+- Animated stats ticker (live data from API)
+- "Execution Protocol" How-It-Works section
+- Featured testimonials grid (18 featured)
+- Full testimonials browser with platform/niche filters
+- Trust/security section + CTA
+
+### Data (Laravel API public endpoints, no auth required)
+- `GET /api/landing/stats` — 8 platform metrics (orders, users, countries, uptime, etc.)
+- `GET /api/landing/testimonials` — paginated (520+ testimonials, 2018–2026, filter by platform/niche)
+- `GET /api/landing/testimonials/featured` — 18 featured testimonials
+- `GET /api/landing/platforms` — list of platforms
+- `GET /api/landing/niches` — list of niches
+
+### API connectivity
+Vite dev server injects `__LARAVEL_API_URL__` constant at build time pointing to:
+- Dev: `https://$REPLIT_DEV_DOMAIN:8000/api` (direct HTTPS to Laravel port 8000)
+- Fallback: `http://localhost:8000/api`
+
+### Artisan command
+- `php artisan automation:generate-testimonials --count=50 --featured=0` — generate more testimonials
+
+### Models added
+`Testimonial`, `LandingStat`
+
+### Migrations added
+`2024_01_04_000001_create_testimonials_table.php` — creates `testimonials` and `landing_stats` tables
+
 ## Key Commands
 
 - `cd artifacts/laravel-api && php artisan serve --host=0.0.0.0 --port=8000` — start Laravel API
