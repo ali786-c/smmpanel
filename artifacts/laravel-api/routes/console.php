@@ -26,3 +26,10 @@ Schedule::command('automation:growth all')->dailyAt('09:00');
 
 // Friday-specific promo (weekend special)
 Schedule::command('automation:growth auto-promo')->weeklyOn(5, '08:00');
+
+// Price watch: detect JustPanel price hikes, auto-correct negative-margin services
+// Runs every 6 hours so margin losses are caught same day
+Schedule::command('automation:price-watch --min-margin=10')->everySixHours();
+
+// Daily digest: morning profit summary pushed to all admins at 08:00
+Schedule::command('automation:daily-digest')->dailyAt('08:00');

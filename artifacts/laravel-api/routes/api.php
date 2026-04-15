@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminAffiliateController;
 use App\Http\Controllers\Admin\AdminAnnouncementController;
 use App\Http\Controllers\Admin\AdminBlogController;
 use App\Http\Controllers\Admin\AdminCouponController;
+use App\Http\Controllers\Admin\AdminCriticalAlertsController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminFinanceController;
 use App\Http\Controllers\Admin\AdminGrowthController;
@@ -185,4 +186,8 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     // Growth Automation
     Route::post('/growth/run', [AdminGrowthController::class, 'run']);
     Route::get('/growth/stats', [AdminGrowthController::class, 'stats']);
+
+    // Critical Alerts (stale orders, thin-margin services, pending tickets)
+    Route::get('/critical-alerts', [AdminCriticalAlertsController::class, 'index']);
+    Route::get('/critical-alerts/stale-orders', [AdminCriticalAlertsController::class, 'staleOrdersCopy']);
 });
