@@ -24,12 +24,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Force all API routes to return JSON for unauthenticated requests
+        $exceptions->shouldRenderJsonWhen(fn($request, $e) => $request->is('api/*'));
+
         $exceptions->render(function (\Throwable $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
                     return response()->json(['error' => $e->errors()], 422);
                 }
                 if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return response()->json(['error' => 'Unauthenticated'], 401);
+                }
+                // Thrown when Laravel tries to redirect to non-existent 'login' route in API context
+                if ($e instanceof \Symfony\Component\Routing\Exception\RouteNotFoundException) {
                     return response()->json(['error' => 'Unauthenticated'], 401);
                 }
                 if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
