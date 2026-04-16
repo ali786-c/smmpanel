@@ -1,20 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Rocket, ArrowLeft, BookOpen, Calendar, Clock, ArrowRight, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { API_BASE } from "@/lib/api";
 
 interface BlogPost {
   id: string;
   title: string;
   slug: string;
   excerpt: string;
-  content: string;
   category: string;
   tags: string[];
   published_at: string;
   read_time: number;
-  meta_title: string;
-  meta_description: string;
 }
 
 export default function Blog() {
@@ -22,16 +19,11 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (supabase as any)
-      .from("blog_posts")
-      .select("*")
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
-      .limit(20)
-      .then(({ data }: any) => {
-        setPosts(data || []);
-        setLoading(false);
-      });
+    fetch(`${API_BASE}/blog?per_page=20`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setPosts(d?.data ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -70,7 +62,11 @@ export default function Blog() {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {posts.map((post) => (
-              <Link to={`/blog/${post.slug}`} key={post.id} className="glass rounded-2xl p-6 hover:glow transition-all group">
+              <Link
+                to={`/blog/${post.slug}`}
+                key={post.id}
+                className="glass rounded-2xl p-6 hover:glow transition-all group"
+              >
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">{post.category}</span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">

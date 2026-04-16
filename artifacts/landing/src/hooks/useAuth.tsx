@@ -1,53 +1,54 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch, clearToken, getToken, setToken } from "@/lib/api";
+
+interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
   loading: true,
-  signOut: async () => {},
+  signOut: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    if (!getToken()) { setLoading(false); return; }
+    apiFetch("/auth/me")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.user) setUser(d.user); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut = () => {
+    apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
+    clearToken();
+    setUser(null);
+    window.location.href = "/";
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function loginUser(token: string, user: AuthUser) {
+  setToken(token);
+  localStorage.setItem("esm_user", JSON.stringify(user));
 }
 
 export const useAuth = () => useContext(AuthContext);
