@@ -1,0 +1,32 @@
+import { motion } from "framer-motion";
+
+export function CTA() {
+  return (
+    <section className="py-32 relative">
+      <div className="container mx-auto px-4 max-w-5xl text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="p-12 md:p-24 rounded-3xl bg-gradient-to-br from-primary/20 via-black to-accent/20 border border-white/10 relative overflow-hidden"
+        >
+          <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='8' height='8' fill='%23fff' fill-opacity='0.05'/%3E%3C/svg%3E\")"}} />
+          
+          <div className="relative z-10">
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">Ready to Scale?</h2>
+            <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto font-light">
+              Join thousands of top creators who rely on emazingSM for consistent, high-quality growth. Initialize your terminal today.
+            </p>
+            
+            <a 
+              href="/app"
+              className="inline-block px-10 py-5 bg-primary text-primary-foreground rounded-lg font-bold text-lg tracking-wide hover:bg-primary/90 transition-all box-glow"
+            >
+              ACCESS DASHBOARD
+            </a>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
