@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Banknote, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { apiFetch } from "@/lib/api";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface WalletTransaction {
   id: string;
@@ -22,33 +22,21 @@ const paymentMethods = [
 ];
 
 export default function WalletPage() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
   const [balance, setBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-
-    const fetchData = async () => {
-      setLoading(true);
-      const [walletRes, txRes] = await Promise.all([
-        supabase.from("wallets").select("balance").eq("user_id", user.id).single(),
-        supabase
-          .from("wallet_transactions")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(50),
-      ]);
-
-      if (walletRes.data) setBalance(walletRes.data.balance);
-      if (txRes.data) setTransactions(txRes.data);
-      setLoading(false);
-    };
-
-    fetchData();
-  }, [user]);
+    Promise.all([
+      apiFetch("/wallet").then(r => r.ok ? r.json() : null),
+      apiFetch("/wallet/transactions?per_page=50").then(r => r.ok ? r.json() : null),
+    ]).then(([wallet, txData]) => {
+      if (wallet) setBalance(parseFloat(wallet.balance ?? wallet.wallet?.balance ?? 0));
+      const txList = txData?.data ?? txData?.transactions ?? txData ?? [];
+      setTransactions(Array.isArray(txList) ? txList : []);
+    }).finally(() => setLoading(false));
+  }, []);
 
   if (loading) {
     return (
@@ -60,7 +48,6 @@ export default function WalletPage() {
 
   return (
     <div className="space-y-6">
-      {/* Balance Card */}
       <div className="glass rounded-2xl p-8 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5" />
         <div className="relative">
@@ -72,7 +59,6 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* No Refund Notice */}
       <div className="glass rounded-2xl p-4 border border-destructive/20 bg-destructive/5">
         <p className="text-xs text-muted-foreground text-center">
           <span className="text-destructive font-semibold">⚠ No Refund Policy:</span> All deposits are final. Due to the digital nature of our services, funds added to your account are <strong>non-refundable</strong>. By adding funds you agree to our{" "}
@@ -80,24 +66,20 @@ export default function WalletPage() {
         </p>
       </div>
 
-      {/* Add Funds */}
       <div className="grid md:grid-cols-3 gap-4">
         {paymentMethods.map((method) => (
-          <div key={method.name} className="glass rounded-2xl p-5 hover:glow transition-all cursor-pointer group">
+          <div key={method.name} className="glass rounded-2xl p-5 hover:glow transition-all cursor-pointer group" onClick={() => navigate("/dashboard/deposit")}>
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
               <method.icon className="w-5 h-5 text-primary-foreground" />
             </div>
             <h3 className="font-heading font-semibold">{method.name}</h3>
             <p className="text-xs text-muted-foreground">{method.description}</p>
             <p className="text-xs text-primary mt-2">Min: {method.min}</p>
-            <Button className="w-full mt-3 gradient-primary text-primary-foreground text-sm" size="sm">
-              Add Funds
-            </Button>
+            <Button className="w-full mt-3 gradient-primary text-primary-foreground text-sm" size="sm">Add Funds</Button>
           </div>
         ))}
       </div>
 
-      {/* Transactions */}
       <div className="glass rounded-2xl p-6">
         <h3 className="font-heading font-semibold mb-4">Transaction History</h3>
         <div className="overflow-x-auto">
@@ -125,9 +107,7 @@ export default function WalletPage() {
                         {isPositive ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
                       </td>
                       <td className="py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          tx.status === "completed" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                        }`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${tx.status === "completed" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
                           {tx.status}
                         </span>
                       </td>

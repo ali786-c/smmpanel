@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -9,16 +9,14 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single()
-      .then(({ data, error }) => {
-        setIsAdmin(!error && !!data);
-      });
+    if (!user) { setIsAdmin(false); return; }
+    apiFetch("/profile")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const roles: string[] = d?.roles ?? [];
+        setIsAdmin(roles.includes("admin"));
+      })
+      .catch(() => setIsAdmin(false));
   }, [user]);
 
   if (authLoading || isAdmin === null) {
@@ -29,9 +27,7 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
     );
   }
 
-  if (!user || !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!user || !isAdmin) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 }

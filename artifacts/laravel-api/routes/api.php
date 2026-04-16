@@ -97,6 +97,20 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/orders/{id}/request-speedup', [OrderActionController::class, 'requestSpeedup']);
     Route::post('/orders/{id}/request-refill',  [OrderActionController::class, 'requestRefill']);
 
+    // Coupon validation
+    Route::post('/coupons/validate', function (\Illuminate\Http\Request $request) {
+        $code   = strtoupper(trim($request->input('code', '')));
+        $amount = (float) $request->input('amount', 0);
+        if (!$code) return response()->json(['valid' => false, 'error' => 'No coupon code provided'], 422);
+        $coupon = \App\Models\Coupon::where('code', $code)->first();
+        if (!$coupon || !$coupon->isValid($amount)) {
+            return response()->json(['valid' => false, 'error' => 'Invalid or expired coupon'], 422);
+        }
+        $discount = $coupon->calculateDiscount($amount);
+        return response()->json(['valid' => true, 'code' => $coupon->code, 'discount' => $discount,
+            'discount_type' => $coupon->discount_type, 'discount_value' => $coupon->discount_value]);
+    });
+
     // Wallet
     Route::get('/wallet', [WalletController::class, 'index']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactions']);

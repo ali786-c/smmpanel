@@ -1,53 +1,43 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface Props {
-  userId?: string;
-  email?: string;
-}
+interface Props { userId?: string; email?: string; }
 
 export default function NotificationPreferences({ userId, email }: Props) {
-  const [prefs, setPrefs] = useState({
-    order_updates: true,
-    wallet_transactions: true,
-    service_updates: true,
-    promotions: false,
-  });
+  const [prefs, setPrefs] = useState({ order_updates: true, wallet_transactions: true, service_updates: true, promotions: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from("notification_preferences")
-      .select("*")
-      .eq("user_id", userId)
-      .single()
-      .then(({ data }) => {
-        if (data) {
+    if (!userId) { setLoading(false); return; }
+    apiFetch("/profile/notification-preferences")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.preferences || d) {
+          const p = d.preferences ?? d;
           setPrefs({
-            order_updates: data.order_updates,
-            wallet_transactions: data.wallet_transactions,
-            service_updates: data.service_updates,
-            promotions: data.promotions,
+            order_updates: p.order_updates ?? true,
+            wallet_transactions: p.wallet_transactions ?? true,
+            service_updates: p.service_updates ?? true,
+            promotions: p.promotions ?? false,
           });
         }
-        setLoading(false);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [userId]);
 
   const handleSave = async () => {
-    if (!userId) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("notification_preferences")
-      .upsert({ user_id: userId, ...prefs }, { onConflict: "user_id" });
+    const res = await apiFetch("/profile/notification-preferences", {
+      method: "PATCH",
+      body: JSON.stringify(prefs),
+    });
     setSaving(false);
-    if (error) toast.error("Failed to save preferences");
-    else toast.success("Notification preferences saved");
+    if (res.ok) toast.success("Notification preferences saved");
+    else toast.error("Failed to save preferences");
   };
 
   const items = [
@@ -59,39 +49,26 @@ export default function NotificationPreferences({ userId, email }: Props) {
 
   return (
     <div className="glass rounded-2xl p-6 space-y-4">
-      <h3 className="font-heading font-semibold flex items-center gap-2">
-        <Bell className="w-5 h-5 text-primary" />
-        Notification Preferences
-      </h3>
+      <h3 className="font-heading font-semibold flex items-center gap-2"><Bell className="w-5 h-5 text-primary" /> Notification Preferences</h3>
       {loading ? (
-        <div className="flex justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-        </div>
+        <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
       ) : (
         <>
           <div className="space-y-3">
-            {items.map((item) => (
+            {items.map(item => (
               <label key={item.key} className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 cursor-pointer">
                 <div>
                   <p className="text-sm font-medium">{item.label}</p>
                   <p className="text-xs text-muted-foreground">{item.desc}</p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={prefs[item.key]}
-                  onChange={(e) => setPrefs((p) => ({ ...p, [item.key]: e.target.checked }))}
-                  className="w-4 h-4 accent-primary"
-                />
+                <input type="checkbox" checked={prefs[item.key]} onChange={e => setPrefs(p => ({ ...p, [item.key]: e.target.checked }))} className="w-4 h-4 accent-primary" />
               </label>
             ))}
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full gradient-primary text-primary-foreground font-bold py-5">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            SAVE PREFERENCES
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} SAVE PREFERENCES
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Email notifications are sent to {email}
-          </p>
+          <p className="text-xs text-muted-foreground">Email notifications are sent to {email}</p>
         </>
       )}
     </div>
