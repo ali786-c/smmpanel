@@ -1,7 +1,7 @@
-const domain = (import.meta as any).env?.VITE_REPLIT_DEV_DOMAIN || "";
-export const API_BASE = domain
-  ? `https://${domain}:8000/api`
-  : "http://localhost:8000/api";
+// Use the app's own base path + a proxy segment so all requests
+// stay on the same origin and pass through the Vite dev-server proxy.
+// BASE_URL = "/landing/" in dev and production.
+export const API_BASE = `${import.meta.env.BASE_URL}laravel-api`;
 
 export function getToken(): string | null {
   return localStorage.getItem("esm_token");
@@ -14,6 +14,11 @@ export function setToken(token: string): void {
 export function clearToken(): void {
   localStorage.removeItem("esm_token");
   localStorage.removeItem("esm_user");
+}
+
+export function loginUser(token: string, user: unknown): void {
+  localStorage.setItem("esm_token", token);
+  localStorage.setItem("esm_user", JSON.stringify(user));
 }
 
 export async function apiFetch(

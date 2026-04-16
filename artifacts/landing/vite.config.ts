@@ -25,17 +25,8 @@ if (!basePath) {
   );
 }
 
-const replitDevDomain = process.env.REPLIT_DEV_DOMAIN;
-// Port 8000 is the Laravel API, accessible externally via HTTPS on the same domain at port 8000
-const laravelApiUrl = replitDevDomain
-  ? `https://${replitDevDomain}:8000/api`
-  : "http://localhost:8000/api";
-
 export default defineConfig({
   base: basePath,
-  define: {
-    __LARAVEL_API_URL__: JSON.stringify(laravelApiUrl),
-  },
   plugins: [
     react(),
     runtimeErrorOverlay(),
@@ -74,10 +65,12 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      "/laravel-api": {
+      // Matches /landing/laravel-api/... → http://localhost:8000/api/...
+      // This keeps all requests on the same origin (no CORS, no port issues).
+      "^/landing/laravel-api": {
         target: "http://localhost:8000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/laravel-api/, "/api"),
+        rewrite: (path) => path.replace(/^\/landing\/laravel-api/, "/api"),
       },
     },
   },
