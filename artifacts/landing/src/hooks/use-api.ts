@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 
-const API_BASE = (() => {
-  const replitDomain = (import.meta as any).env?.VITE_REPLIT_DEV_DOMAIN || "";
-  if (replitDomain) return `https://${replitDomain}:8000/api/landing`;
-  return "http://localhost:8000/api/landing";
-})();
+declare const __LARAVEL_API_URL__: string;
+const API_BASE = `${__LARAVEL_API_URL__}/landing`;
 
 export function useStats() {
   const [data, setData] = useState<any>(null);
@@ -42,7 +39,7 @@ export function useTestimonials(page = 1, filters: Record<string, string> = {}) 
     fetch(`${API_BASE}/testimonials?${params.toString()}`)
       .then(res => res.json())
       .then(d => {
-        setData(prev => page === 1 ? (d.data || []) : [...prev, ...(d.data || [])]);
+        setData(prev => page === 1 ? d.data : [...prev, ...d.data]);
         setMeta(d.meta);
         setLoading(false);
       })

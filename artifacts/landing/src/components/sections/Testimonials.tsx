@@ -54,7 +54,7 @@ export function Testimonials() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {data?.map((item: any, idx: number) => (
+          {data?.map((item, idx) => (
             <motion.div
               key={`${item.id}-${idx}`}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -65,7 +65,7 @@ export function Testimonials() {
                <div className="flex items-center justify-between mb-4">
                  <div className="flex items-center gap-3">
                    <div className="w-8 h-8 rounded-full bg-white/10 overflow-hidden">
-                     <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${item.author_handle}`} alt="avatar" />
+                     <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${item.avatar_seed || item.author_handle}`} alt="avatar" />
                    </div>
                    <div>
                      <p className="text-sm font-bold truncate max-w-[100px]">{item.author_name}</p>

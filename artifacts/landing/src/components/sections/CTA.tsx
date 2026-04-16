@@ -10,7 +10,7 @@ export function CTA() {
           viewport={{ once: true }}
           className="p-12 md:p-24 rounded-3xl bg-gradient-to-br from-primary/20 via-black to-accent/20 border border-white/10 relative overflow-hidden"
         >
-          <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='8' height='8' fill='%23fff' fill-opacity='0.05'/%3E%3C/svg%3E\")"}} />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPHBhdGggZD0iTTAgMGg4djhIMHoiIGZpbGw9Im5vbmUiLz4KPC9zdmc+')] opacity-20 mix-blend-overlay" />
           
           <div className="relative z-10">
             <h2 className="text-4xl md:text-6xl font-bold mb-6">Ready to Scale?</h2>
