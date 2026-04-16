@@ -49,11 +49,18 @@ Route::prefix('landing')->group(function () {
 
 // ─── Auth Routes ───────────────────────────────────
 Route::prefix('auth')->group(function () {
-    // Threat check on new account creation and login
-    Route::post('/register', [AuthController::class, 'register'])->middleware('threat');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('threat');
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    // Rate-limited + threat-checked auth endpoints
+    // Register: max 3 attempts per IP per hour
+    Route::post('/register', [AuthController::class, 'register'])
+        ->middleware(['throttle:3,60', 'threat']);
+    // Login: max 10 attempts per IP per minute, + brute-force lockout middleware
+    Route::post('/login', [AuthController::class, 'login'])
+        ->middleware(['throttle:10,1', 'threat', 'login.throttle']);
+    // Password reset: max 5 per hour
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:5,60');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:5,60');
 
     Route::middleware('auth:api')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);

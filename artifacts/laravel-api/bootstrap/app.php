@@ -13,19 +13,19 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin'  => \App\Http\Middleware\AdminMiddleware::class,
-            'moderator' => \App\Http\Middleware\ModeratorMiddleware::class,
-            'threat' => \App\Http\Middleware\ThreatMiddleware::class,
+            'admin'         => \App\Http\Middleware\AdminMiddleware::class,
+            'moderator'     => \App\Http\Middleware\ModeratorMiddleware::class,
+            'threat'        => \App\Http\Middleware\ThreatMiddleware::class,
+            'login.throttle'=> \App\Http\Middleware\LoginThrottleMiddleware::class,
         ]);
 
-        $middleware->prepend(\App\Http\Middleware\CorsMiddleware::class);
+        // Global middleware — applied to every request
+        // Note: CORS is handled by Laravel's built-in HandleCors + config/cors.php
+        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                $status = 500;
-                $message = 'Server error';
-
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
                     return response()->json(['error' => $e->errors()], 422);
                 }
@@ -39,9 +39,11 @@ return Application::configure(basePath: dirname(__DIR__))
                     return response()->json(['error' => 'Resource not found'], 404);
                 }
                 if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
-                    return response()->json(['error' => $e->getMessage() ?: 'HTTP error'], $e->getStatusCode());
+                    $msg = $e->getStatusCode() >= 500 ? 'Server error' : ($e->getMessage() ?: 'HTTP error');
+                    return response()->json(['error' => $msg], $e->getStatusCode());
                 }
 
+                // Never expose raw exception messages in production
                 return response()->json(['error' => config('app.debug') ? $e->getMessage() : 'Server error'], 500);
             }
         });

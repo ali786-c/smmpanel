@@ -51,7 +51,9 @@ class ProfileController extends Controller
     {
         $validated = $request->validate([
             'current_password' => 'required',
-            'new_password' => 'required|min:6',
+            'password'         => ['required', 'min:8', 'regex:/^(?=.*[a-zA-Z])(?=.*[0-9]).+$/'],
+        ], [
+            'password.regex' => 'Password must contain at least one letter and one number.',
         ]);
 
         $user = auth()->user();
@@ -59,7 +61,12 @@ class ProfileController extends Controller
             return response()->json(['error' => 'Current password is incorrect'], 422);
         }
 
-        $user->update(['password' => Hash::make($validated['new_password'])]);
+        // Prevent reusing the same password
+        if (Hash::check($validated['password'], $user->password)) {
+            return response()->json(['error' => 'New password must be different from your current password'], 422);
+        }
+
+        $user->update(['password' => Hash::make($validated['password'])]);
         return response()->json(['message' => 'Password changed successfully']);
     }
 
