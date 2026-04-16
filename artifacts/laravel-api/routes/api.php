@@ -22,7 +22,6 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PublicApiController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TicketController;
@@ -31,15 +30,6 @@ use Illuminate\Support\Facades\Route;
 
 // ─── Health Check ─────────────────────────────────
 Route::get('/healthz', fn() => response()->json(['status' => 'ok']));
-
-// ─── Public Landing Page API ───────────────────────
-Route::prefix('landing')->group(function () {
-    Route::get('/stats', [LandingController::class, 'stats']);
-    Route::get('/testimonials', [LandingController::class, 'testimonials']);
-    Route::get('/testimonials/featured', [LandingController::class, 'featuredTestimonials']);
-    Route::get('/platforms', [LandingController::class, 'platforms']);
-    Route::get('/niches', [LandingController::class, 'niches']);
-});
 
 // ─── Public API (SMM Panel v2) ─────────────────────
 Route::post('/v2', [PublicApiController::class, 'handle']);
