@@ -44,4 +44,8 @@ return [
         'key' => env('OPENAI_API_KEY', ''),
     ],
 
+    'turnstile' => [
+        'secret_key' => env('TURNSTILE_SECRET_KEY', ''),
+    ],
+
 ];

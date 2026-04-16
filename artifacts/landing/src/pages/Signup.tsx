@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "@/lib/api";
 import { validatePassword } from "@/lib/sanitize";
+import { Turnstile } from "@marsidev/react-turnstile";
+
+const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA";
 
 export default function Signup() {
   const { t } = useTranslation();
@@ -20,6 +23,8 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cfToken, setCfToken] = useState<string | null>(null);
+  const turnstileRef = useRef<{ reset: () => void }>(null);
   const referralCode = searchParams.get("ref") ?? "";
 
   const passwordChecks = useMemo(() => ({
@@ -38,22 +43,42 @@ export default function Signup() {
     const pwCheck = validatePassword(password);
     if (!pwCheck.valid) { toast.error(pwCheck.message); return; }
 
+    if (!cfToken) {
+      toast.error("Please complete the bot verification first.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await apiFetch("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ full_name: name, email: email.trim().toLowerCase(), password, referral_code: referralCode || undefined }),
+        body: JSON.stringify({
+          full_name: name,
+          email: email.trim().toLowerCase(),
+          password,
+          referral_code: referralCode || undefined,
+          cf_turnstile_response: cfToken,
+          // Honeypot fields — real users never fill these
+          website: "",
+          phone_confirm: "",
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        const errMsg = typeof data.error === "object" ? Object.values(data.error).flat().join(" ") : (data.error || "Registration failed.");
+        const errMsg = typeof data.error === "object"
+          ? Object.values(data.error).flat().join(" ")
+          : (data.error || "Registration failed.");
         toast.error(errMsg);
+        turnstileRef.current?.reset();
+        setCfToken(null);
         return;
       }
       toast.success("Account created! Please log in.");
       navigate("/login");
     } catch {
       toast.error("Network error. Please try again.");
+      turnstileRef.current?.reset();
+      setCfToken(null);
     } finally {
       setLoading(false);
     }
@@ -72,6 +97,12 @@ export default function Signup() {
           <h2 className="text-xl font-heading font-bold text-center mb-6">{t("auth.createAccount")}</h2>
 
           <form onSubmit={handleSignup} className="space-y-4" autoComplete="on">
+            {/* Honeypot fields — visually hidden, bots fill them, humans don't */}
+            <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+              <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+              <input type="tel" name="phone_confirm" tabIndex={-1} autoComplete="off" />
+            </div>
+
             <div>
               <Label htmlFor="name" className="text-xs text-muted-foreground">{t("auth.fullName")}</Label>
               <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" className="bg-secondary/50 mt-1" autoComplete="name" required maxLength={100} />
@@ -123,8 +154,26 @@ export default function Signup() {
               Your IP address and agreement timestamp are recorded for compliance purposes.
             </div>
 
-            <Button type="submit" className="w-full gradient-primary text-primary-foreground font-semibold" disabled={loading || passwordStrength < 3}>
-              {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("auth.creating")}</> : t("auth.createAccount")}
+            {/* Cloudflare Turnstile CAPTCHA */}
+            <div className="flex justify-center">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={SITE_KEY}
+                onSuccess={(token) => setCfToken(token)}
+                onExpire={() => { setCfToken(null); toast.error("Verification expired. Please verify again."); }}
+                onError={() => { setCfToken(null); toast.error("Verification failed. Please try again."); }}
+                options={{ theme: "auto", size: "normal" }}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full gradient-primary text-primary-foreground font-semibold"
+              disabled={loading || passwordStrength < 3 || !cfToken}
+            >
+              {loading
+                ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("auth.creating")}</>
+                : t("auth.createAccount")}
             </Button>
           </form>
 

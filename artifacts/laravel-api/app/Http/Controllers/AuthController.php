@@ -7,6 +7,7 @@ use App\Models\Profile;
 use App\Models\Referral;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -16,8 +17,29 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
+    private TurnstileService $turnstile;
+
+    public function __construct(TurnstileService $turnstile)
+    {
+        $this->turnstile = $turnstile;
+    }
+
     public function register(Request $request)
     {
+        // Honeypot: bots often fill hidden fields
+        if (!empty($request->input('website')) || !empty($request->input('phone_confirm'))) {
+            Log::warning('Honeypot triggered on register', ['ip' => $request->ip()]);
+            // Silently delay and fake success to confuse bots
+            sleep(2);
+            return response()->json(['message' => 'Account created! Please log in.'], 201);
+        }
+
+        // Cloudflare Turnstile bot check
+        $cfToken = $request->input('cf_turnstile_response');
+        if (!$this->turnstile->verify($cfToken, $request->ip())) {
+            return response()->json(['error' => 'Bot verification failed. Please complete the CAPTCHA and try again.'], 422);
+        }
+
         $validated = $request->validate([
             'email'         => 'required|email|max:254|unique:users,email',
             'password'      => ['required', 'min:8', 'regex:/^(?=.*[a-zA-Z])(?=.*[0-9]).+$/'],
@@ -81,6 +103,19 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        // Honeypot: bots often fill hidden fields
+        if (!empty($request->input('website')) || !empty($request->input('phone_confirm'))) {
+            Log::warning('Honeypot triggered on login', ['ip' => $request->ip()]);
+            sleep(2);
+            return response()->json(['error' => 'Invalid credentials'], 401);
+        }
+
+        // Cloudflare Turnstile bot check
+        $cfToken = $request->input('cf_turnstile_response');
+        if (!$this->turnstile->verify($cfToken, $request->ip())) {
+            return response()->json(['error' => 'Bot verification failed. Please complete the CAPTCHA and try again.'], 422);
+        }
+
         $validated = $request->validate([
             'email'    => 'required|email|max:254',
             'password' => 'required|string',
