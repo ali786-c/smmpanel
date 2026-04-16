@@ -16,7 +16,24 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import Dashboard from "./pages/Dashboard";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
+
+// Dashboard sub-pages
+import NewOrder from "./pages/dashboard/NewOrder";
+import Orders from "./pages/dashboard/Orders";
+import MassOrder from "./pages/dashboard/MassOrder";
+import WalletPage from "./pages/dashboard/WalletPage";
+import Tickets from "./pages/dashboard/Tickets";
+import Services from "./pages/dashboard/Services";
+import Updates from "./pages/dashboard/Updates";
+import ApiDocs from "./pages/dashboard/ApiDocs";
+import Affiliates from "./pages/dashboard/Affiliates";
+import SpendingAnalytics from "./pages/dashboard/SpendingAnalytics";
+import Settings from "./pages/dashboard/Settings";
+import AccountManagement from "./pages/dashboard/AccountManagement";
+import Support from "./pages/dashboard/Support";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +60,26 @@ const App = () => (
               {/* Blog */}
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+
+              {/* Dashboard (protected) */}
+              <Route path="/dashboard" element={<Dashboard />}>
+                <Route path="new-order" element={<NewOrder />} />
+                <Route path="mass-order" element={<MassOrder />} />
+                <Route path="orders" element={<Orders />} />
+                <Route path="wallet" element={<WalletPage />} />
+                <Route path="tickets" element={<Tickets />} />
+                <Route path="services" element={<Services />} />
+                <Route path="updates" element={<Updates />} />
+                <Route path="api" element={<ApiDocs />} />
+                <Route path="affiliates" element={<Affiliates />} />
+                <Route path="analytics" element={<SpendingAnalytics />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="account" element={<AccountManagement />} />
+                <Route path="support" element={<Support />} />
+              </Route>
+
+              {/* Admin panel (protected, admin-only) */}
+              <Route path="/admin" element={<AdminPanel />} />
 
               {/* Fallback */}
               <Route path="*" element={<NotFound />} />

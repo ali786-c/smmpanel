@@ -32,7 +32,8 @@ export default function Login() {
       }
       loginUser(data.token, data.user);
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      const roles: string[] = data.user?.roles ?? [];
+      navigate(roles.includes("admin") ? "/admin" : "/dashboard");
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -105,6 +106,29 @@ export default function Login() {
               {t("auth.signUp")}
             </Link>
           </p>
+
+          {/* Demo accounts */}
+          <div className="mt-6 pt-5 border-t border-border/40">
+            <p className="text-xs text-muted-foreground text-center mb-3">Demo accounts (click to fill)</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => { setEmail("user@emazingsm.com"); setPassword("User1234!"); }}
+                className="text-xs px-3 py-2 rounded-lg bg-secondary/60 hover:bg-secondary text-left transition-colors border border-border/30"
+              >
+                <span className="block font-medium text-foreground">👤 Regular User</span>
+                <span className="text-muted-foreground">→ User Dashboard</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEmail("admin@emazingsm.com"); setPassword("Admin1234!"); }}
+                className="text-xs px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-left transition-colors border border-primary/20"
+              >
+                <span className="block font-medium text-primary">🛡️ Admin User</span>
+                <span className="text-muted-foreground">→ Admin Panel</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
