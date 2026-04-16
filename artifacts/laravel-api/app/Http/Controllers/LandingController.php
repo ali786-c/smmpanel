@@ -20,8 +20,8 @@ class LandingController extends Controller
         $dbCustomers = DB::table('users')->count();
         $dbServices  = DB::table('services')->where('is_active', true)->count();
 
-        $totalOrders    = max($row?->total_orders ?? 12847, $dbOrders);
-        $totalCustomers = max($row?->total_customers ?? 3200,  $dbCustomers);
+        $totalOrders    = max($row?->total_orders ?? 191000, $dbOrders);
+        $totalCustomers = max($row?->total_customers ?? 8700,  $dbCustomers);
         $yearsOfService = now()->year - ($row?->started_year ?? 2018);
 
         // Cheapest active service (rate is per 1000)

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminActivityController;
 use App\Http\Controllers\Admin\AdminAffiliateController;
 use App\Http\Controllers\Admin\AdminAnnouncementController;
@@ -34,6 +36,9 @@ Route::get('/healthz', fn() => response()->json(['status' => 'ok']));
 
 // ─── Public API (SMM Panel v2) ─────────────────────
 Route::post('/v2', [PublicApiController::class, 'handle']);
+
+// ─── Stripe Webhook (Public — Stripe calls this, no auth) ─────────────────
+Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook']);
 
 // ─── Landing Page (Public) ─────────────────────────
 Route::prefix('landing')->group(function () {
@@ -96,6 +101,16 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/wallet', [WalletController::class, 'index']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
     Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
+
+    // Payment — Stripe / PayPal / Crypto
+    Route::prefix('payment')->group(function () {
+        Route::get('/methods',              [PaymentController::class, 'methods']);
+        Route::post('/stripe/checkout',     [PaymentController::class, 'stripeCheckout']);
+        Route::get('/crypto/addresses',     [PaymentController::class, 'cryptoAddresses']);
+        Route::post('/crypto/confirm',      [PaymentController::class, 'cryptoConfirm']);
+        Route::post('/paypal/create-order', [PaymentController::class, 'paypalCreateOrder']);
+        Route::post('/paypal/capture',      [PaymentController::class, 'paypalCapture']);
+    });
 
     // Tickets
     Route::get('/tickets', [TicketController::class, 'index']);
@@ -199,4 +214,12 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     // Critical Alerts (stale orders, thin-margin services, pending tickets)
     Route::get('/critical-alerts', [AdminCriticalAlertsController::class, 'index']);
     Route::get('/critical-alerts/stale-orders', [AdminCriticalAlertsController::class, 'staleOrdersCopy']);
+
+    // Payment Gateway Settings
+    Route::prefix('payment-settings')->group(function () {
+        Route::get('/',                  [AdminPaymentController::class, 'index']);
+        Route::get('/status',            [AdminPaymentController::class, 'status']);
+        Route::patch('/{id}',            [AdminPaymentController::class, 'update']);
+        Route::post('/toggle-provider',  [AdminPaymentController::class, 'toggleProvider']);
+    });
 });

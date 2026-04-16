@@ -8,7 +8,7 @@ interface Stats {
 }
 
 export default function LiveSocialProof() {
-  const [stats, setStats] = useState<Stats>({ totalOrders: 12847, activeUsers: 3200, totalServices: 450 });
+  const [stats, setStats] = useState<Stats>({ totalOrders: 191000, activeUsers: 8700, totalServices: 450 });
 
   useEffect(() => {
     const domain = (import.meta as any).env?.VITE_REPLIT_DEV_DOMAIN || "";
@@ -18,8 +18,8 @@ export default function LiveSocialProof() {
       .then(d => {
         if (d?.data) {
           setStats({
-            totalOrders: Math.max(d.data.total_orders?.raw ?? 12847, 12847),
-            activeUsers: Math.max(d.data.total_customers?.raw ?? 3200, 3200),
+            totalOrders: Math.max(d.data.total_orders?.raw ?? 191000, 191000),
+            activeUsers: Math.max(d.data.total_customers?.raw ?? 8700, 8700),
             totalServices: d.data.services?.raw ?? 450,
           });
         }
