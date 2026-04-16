@@ -72,6 +72,8 @@ Route::prefix('auth')->group(function () {
 // ─── Public Endpoints ──────────────────────────────
 Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/categories', [ServiceController::class, 'categories']);
+// NOTE: /services/favorites must stay ABOVE /services/{id} to avoid wildcard hijack
+Route::get('/services/favorites', [ServiceController::class, 'favorites'])->middleware('auth:api');
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/blog', [BlogController::class, 'index']);
 Route::get('/blog/categories', [BlogController::class, 'categories']);
@@ -89,13 +91,13 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/profile/notification-preferences', [ProfileController::class, 'notificationPreferences']);
     Route::patch('/profile/notification-preferences', [ProfileController::class, 'updateNotificationPreferences']);
 
-    // Services (auth needed for favorites)
+    // Services (favorites — moved to public section above {id} to avoid wildcard conflict)
     Route::get('/services/{serviceId}/favorite', [ServiceController::class, 'toggleFavorite']);
-    Route::get('/services/favorites', [ServiceController::class, 'favorites']);
 
     // Orders
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::post('/orders/mass', [OrderController::class, 'massStore']);
     Route::get('/orders/analytics', [OrderController::class, 'analytics']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
 

@@ -217,4 +217,117 @@ class OrderController extends Controller
             'total_orders' => $totalOrders,
         ]);
     }
+
+    public function massStore(Request $request)
+    {
+        $request->validate([
+            'orders'              => 'required|array|min:1|max:50',
+            'orders.*.service_id' => 'required|uuid|exists:services,id',
+            'orders.*.link'       => 'required|string|max:2000',
+            'orders.*.quantity'   => 'required|integer|min:1',
+        ]);
+
+        $user = auth()->user();
+        if ($user->isBanned()) {
+            return response()->json(['error' => 'Account suspended'], 403);
+        }
+
+        $wallet = Wallet::where('user_id', $user->id)->first();
+
+        // Pre-calculate total cost to check balance upfront
+        $totalCost = 0;
+        $orderItems = [];
+        foreach ($request->orders as $index => $item) {
+            $service = Service::active()->find($item['service_id']);
+            if (!$service) {
+                return response()->json(['error' => "Order #".($index+1).": service not found"], 422);
+            }
+            if ($item['quantity'] < $service->min_order || $item['quantity'] > $service->max_order) {
+                return response()->json([
+                    'error' => "Order #".($index+1).": quantity must be between {$service->min_order} and {$service->max_order}",
+                ], 422);
+            }
+            $cost = round(($service->rate / 1000) * $item['quantity'], 4);
+            $totalCost += $cost;
+            $orderItems[] = ['service' => $service, 'link' => $item['link'], 'quantity' => $item['quantity'], 'cost' => $cost];
+        }
+
+        if (!$wallet || $wallet->balance < $totalCost) {
+            return response()->json(['error' => 'Insufficient balance for all orders. Required: $'.number_format($totalCost,4)], 402);
+        }
+
+        $results = [];
+        $providerKey = config('services.provider.api_key');
+        $providerUrl = config('services.provider.url', 'https://justanotherpanel.com/api/v2');
+
+        DB::beginTransaction();
+        try {
+            foreach ($orderItems as $item) {
+                $service      = $item['service'];
+                $cost         = $item['cost'];
+                $providerCost = round($cost * 0.7, 4);
+                $orderId      = (string) Str::uuid();
+
+                $wallet->decrement('balance', $cost);
+
+                // Call provider
+                $providerRes = Http::timeout(15)->post($providerUrl, [
+                    'key'      => $providerKey,
+                    'action'   => 'add',
+                    'service'  => $service->external_service_id,
+                    'link'     => $item['link'],
+                    'quantity' => $item['quantity'],
+                ]);
+
+                $providerData    = $providerRes->json();
+                $providerOrderId = $providerData['order'] ?? null;
+
+                $order = Order::create([
+                    'id'                => $orderId,
+                    'user_id'           => $user->id,
+                    'service_id'        => $service->id,
+                    'link'              => $item['link'],
+                    'quantity'          => $item['quantity'],
+                    'cost'              => $cost,
+                    'provider_cost'     => $providerCost,
+                    'status'            => $providerOrderId ? 'In progress' : 'Pending',
+                    'external_order_id' => $providerOrderId,
+                ]);
+
+                WalletTransaction::create([
+                    'id'             => (string) Str::uuid(),
+                    'user_id'        => $user->id,
+                    'type'           => 'order',
+                    'amount'         => -$cost,
+                    'description'    => "Order #{$orderId} - {$service->name}",
+                    'reference_id'   => $orderId,
+                    'status'         => 'completed',
+                    'payment_method' => 'wallet',
+                    'created_at'     => now(),
+                ]);
+
+                $results[] = [
+                    'id'               => $orderId,
+                    'service'          => $service->name,
+                    'status'           => $order->status,
+                    'cost'             => $cost,
+                    'provider_order_id'=> $providerOrderId,
+                ];
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'placed'  => count($results),
+                'total_cost' => $totalCost,
+                'orders'  => $results,
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Mass order failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Mass order failed. Please try again.'], 500);
+        }
+    }
 }
