@@ -151,15 +151,15 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::post('/services/resanitize', [AdminServiceController::class, 'resanitizeServices']);
     Route::post('/services/markup', [AdminServiceController::class, 'updateMarkup']);
 
-    // Orders
+    // Orders — specific static routes MUST come before {id} wildcard
     Route::get('/orders', [AdminOrderController::class, 'index']);
+    Route::get('/orders/revenue-export', [AdminOrderController::class, 'revenueExport']);
+    Route::post('/orders/bulk-sync', [AdminOrderController::class, 'bulkSyncStatus']);
+    Route::post('/orders/manual', [AdminOrderController::class, 'createManualOrder']);
     Route::get('/orders/{id}', [AdminOrderController::class, 'show']);
     Route::patch('/orders/{id}', [AdminOrderController::class, 'update']);
     Route::post('/orders/{id}/refund', [AdminOrderController::class, 'refund']);
     Route::post('/orders/{id}/sync-status', [AdminOrderController::class, 'syncStatus']);
-    Route::post('/orders/bulk-sync', [AdminOrderController::class, 'bulkSyncStatus']);
-    Route::post('/orders/manual', [AdminOrderController::class, 'createManualOrder']);
-    Route::get('/orders/revenue-export', [AdminOrderController::class, 'revenueExport']);
 
     // Finance
     Route::get('/finance', [AdminFinanceController::class, 'overview']);
