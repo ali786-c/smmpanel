@@ -116,11 +116,13 @@ class AuthController extends Controller
     {
         $user = auth()->user()->load(['profile', 'roles', 'wallet']);
         return response()->json([
-            'id' => $user->id,
-            'email' => $user->email,
-            'profile' => $user->profile,
-            'roles' => $user->roles->pluck('role'),
-            'wallet' => $user->wallet,
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'profile' => $user->profile,
+                'roles' => $user->roles->pluck('role'),
+                'wallet' => $user->wallet,
+            ],
         ]);
     }
 
