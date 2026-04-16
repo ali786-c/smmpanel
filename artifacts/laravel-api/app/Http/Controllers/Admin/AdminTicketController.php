@@ -29,7 +29,8 @@ class AdminTicketController extends Controller
     public function show($id)
     {
         $ticket = Ticket::with(['user.profile', 'messages'])->findOrFail($id);
-        return response()->json($ticket);
+        // Wrap in {ticket:} so frontend can use (await r.json()).ticket
+        return response()->json(['ticket' => $ticket]);
     }
 
     public function reply(Request $request, $id)

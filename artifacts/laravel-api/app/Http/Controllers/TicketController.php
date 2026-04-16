@@ -25,27 +25,35 @@ class TicketController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'subject' => 'required|string|max:255',
-            'message' => 'required|string',
-            'priority' => 'nullable|in:low,normal,high',
+            'subject'  => 'required|string|max:255',
+            'message'  => 'nullable|string',
+            'content'  => 'nullable|string',
+            'priority' => 'nullable|in:low,normal,medium,high',
+            'category' => 'nullable|string|max:100',
         ]);
+
+        $body = $validated['message'] ?? $validated['content'] ?? '';
+        if (empty($body)) {
+            return response()->json(['error' => ['message' => ['The message field is required.']]], 422);
+        }
 
         $user = auth()->user();
 
         $ticket = Ticket::create([
-            'id' => (string) Str::uuid(),
-            'user_id' => $user->id,
-            'subject' => $validated['subject'],
-            'priority' => $validated['priority'] ?? 'normal',
-            'status' => 'open',
+            'id'          => (string) Str::uuid(),
+            'user_id'     => $user->id,
+            'subject'     => $validated['subject'],
+            'priority'    => $validated['priority'] ?? 'normal',
+            'ticket_type' => $validated['category'] ?? 'general',
+            'status'      => 'open',
         ]);
 
         TicketMessage::create([
-            'id' => (string) Str::uuid(),
+            'id'        => (string) Str::uuid(),
             'ticket_id' => $ticket->id,
-            'sender' => 'user',
-            'content' => $validated['message'],
-            'created_at' => now(),
+            'sender'    => 'user',
+            'content'   => $body,
+            'created_at'=> now(),
         ]);
 
         return response()->json($ticket->load('messages'), 201);
@@ -62,19 +70,25 @@ class TicketController extends Controller
     public function reply(Request $request, $id)
     {
         $validated = $request->validate([
-            'message' => 'required|string',
+            'message' => 'nullable|string',
+            'content' => 'nullable|string',
         ]);
+
+        $body = $validated['content'] ?? $validated['message'] ?? '';
+        if (empty($body)) {
+            return response()->json(['error' => ['message' => ['The message field is required.']]], 422);
+        }
 
         $user = auth()->user();
         $ticket = Ticket::where('user_id', $user->id)
-            ->whereIn('status', ['open', 'in_progress'])
+            ->whereNotIn('status', ['closed'])
             ->findOrFail($id);
 
         $message = TicketMessage::create([
-            'id' => (string) Str::uuid(),
-            'ticket_id' => $ticket->id,
-            'sender' => 'user',
-            'content' => $validated['message'],
+            'id'         => (string) Str::uuid(),
+            'ticket_id'  => $ticket->id,
+            'sender'     => 'user',
+            'content'    => $body,
             'created_at' => now(),
         ]);
 
