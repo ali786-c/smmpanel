@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Admin\AdminActivityController;
 use App\Http\Controllers\Admin\AdminAffiliateController;
 use App\Http\Controllers\Admin\AdminAnnouncementController;
@@ -33,6 +34,13 @@ Route::get('/healthz', fn() => response()->json(['status' => 'ok']));
 
 // ─── Public API (SMM Panel v2) ─────────────────────
 Route::post('/v2', [PublicApiController::class, 'handle']);
+
+// ─── Landing Page (Public) ─────────────────────────
+Route::prefix('landing')->group(function () {
+    Route::get('/stats',   [LandingController::class, 'stats']);
+    Route::get('/reviews', [LandingController::class, 'reviews']);
+    Route::post('/reviews', [LandingController::class, 'submitReview'])->middleware('auth:api');
+});
 
 // ─── Auth Routes ───────────────────────────────────
 Route::prefix('auth')->group(function () {

@@ -39,3 +39,6 @@ Schedule::command('security:refresh-tor-list')->dailyAt('03:00');
 
 // Security: scan ticket messages for malicious content / Tor-IP abuse every 15 min
 Schedule::command('automation:security-monitor')->everyFifteenMinutes();
+
+// Landing stats: increment order/customer counters once per day
+Schedule::command('landing:increment-stats')->dailyAt('00:30');

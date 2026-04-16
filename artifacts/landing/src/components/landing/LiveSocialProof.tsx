@@ -18,8 +18,8 @@ export default function LiveSocialProof() {
       .then(d => {
         if (d?.data) {
           setStats({
-            totalOrders: Math.max(d.data.orders_delivered?.raw ?? 12847, 12847),
-            activeUsers: Math.max(d.data.active_users?.raw ?? 3200, 3200),
+            totalOrders: Math.max(d.data.total_orders?.raw ?? 12847, 12847),
+            activeUsers: Math.max(d.data.total_customers?.raw ?? 3200, 3200),
             totalServices: d.data.services?.raw ?? 450,
           });
         }

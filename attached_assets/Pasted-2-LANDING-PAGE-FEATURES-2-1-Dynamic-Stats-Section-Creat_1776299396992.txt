@@ -1,0 +1,176 @@
+2. 🌐 LANDING PAGE FEATURES
+2.1 Dynamic Stats Section
+
+Create a section showing:
+
+Total Orders (auto-increment daily)
+Years of Service (starting from 2018)
+Average Price / Starting Price
+Total Customers
+Logic:
+Store initial values in DB
+Increment orders once per day using a cron job
+Years of service = current year - 2018
+2.2 Live Counter System
+Orders increase automatically every 24 hours
+Optional: small random increments (e.g. +5 to +50/day)
+Use backend cron (NOT frontend fake JS)
+2.3 Reviews System (REAL + SAFE)
+Database:
+user_id
+username
+country
+rating (3.5–5.0)
+comment
+date_created
+Features:
+Show:
+Name
+Country
+Rating
+Comment
+Date
+Sort:
+Newest first OR random
+Optional:
+Multi-language support (store language field)
+3. 💰 PRICE PROTECTION SYSTEM (CRITICAL)
+Problem:
+
+If supplier (JustPanel) increases price → you lose money.
+
+Solution:
+3.1 Auto Price Sync
+Every X minutes (cron job):
+Fetch latest prices from supplier API
+Compare with your DB
+3.2 Auto Adjustment Rules:
+
+IF supplier_price > your_price:
+
+Option A (safe): pause service
+Option B: auto-update your price with margin
+
+Example:
+
+new_price = supplier_price * 1.2
+3.3 Red Alert System
+
+If mismatch detected:
+
+Mark order/service as:
+🔴 "Price Mismatch Risk"
+Log:
+old price
+new supplier price
+difference
+4. 🧠 ADMIN PANEL IMPROVEMENTS
+4.1 Critical Tickets Dashboard
+
+Create a section:
+👉 “⚠️ Attention Required”
+
+Show:
+Tickets older than X days (e.g. 2 days)
+Orders stuck in pending
+Data:
+ticket_id
+order_id
+days_open
+status
+Behavior:
+Auto-refresh daily
+Highlight urgent ones
+4.2 Smart Alerts
+Daily notification:
+"You have X unresolved tickets"
+Optional email alert
+5. 🔐 SECURITY SYSTEM (HIGH PRIORITY)
+5.1 Suspicious User Detection
+
+Automatically flag users if:
+
+Using:
+Tor exit nodes
+Known VPN IP ranges
+Uploading:
+External file links
+Suspicious file types
+5.2 Actions
+
+If suspicious:
+
+Auto:
+Ban user
+Disable uploads
+Log reason:
+IP
+action triggered
+5.3 File Safety
+DO NOT allow:
+Direct external file execution
+Only allow:
+Safe file types (images, txt, etc.)
+Scan uploads (basic validation)
+6. ⚙️ AUTOMATION SYSTEMS
+6.1 Cron Jobs
+
+Implement:
+
+Daily:
+Increment order count
+Check ticket backlog
+Every 5–15 min:
+Sync supplier prices
+Hourly:
+Scan suspicious users
+6.2 Logs
+
+Create logs for:
+
+Price changes
+User bans
+Failed syncs
+7. 💳 PAYMENT COMPLIANCE (STRIPE SAFE)
+MUST:
+No fake engagement systems
+No misleading stats
+Transparent pricing
+Real transactions only
+8. 💡 EXTRA AUTOMATIONS (OPTIONAL BUT HIGH VALUE)
+8.1 Auto Margin Control
+Always maintain profit margin %
+Example:
+selling_price = supplier_price + margin
+8.2 Auto Service Pause
+If supplier:
+unavailable
+price spikes
+→ disable service automatically
+8.3 Order Risk Detection
+Flag orders:
+too large
+abnormal behavior
+8.4 Simple Analytics Panel
+
+Show:
+
+Daily profit
+Orders count
+Risk alerts
+9. 🧱 TECH STACK (KEEP CHEAP)
+
+Use:
+
+Backend: Node.js (Express)
+DB: SQLite (cheap + simple)
+Cron: node-cron
+Frontend: basic HTML + JS
+10. 🚀 PRIORITY ORDER (TO SAVE YOUR $5)
+
+Build in this order:
+
+✅ Price sync system (MOST IMPORTANT)
+✅ Admin alerts (tickets/orders)
+✅ Security system (ban logic)
+✅ Landing stats (simple version)
