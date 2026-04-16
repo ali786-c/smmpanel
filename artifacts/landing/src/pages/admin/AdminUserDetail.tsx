@@ -42,7 +42,7 @@ export default function AdminUserDetail() {
   const handleAdjust = async () => {
     if (!adjustAmount) return;
     const res = await apiFetch(`/admin/users/${userId}/adjust-balance`, {
-      method: "POST", body: JSON.stringify({ amount: parseFloat(adjustAmount), note: adjustNote }),
+      method: "POST", body: JSON.stringify({ amount: parseFloat(adjustAmount), reason: adjustNote || "Admin adjustment" }),
     });
     if (res.ok) { toast.success("Balance adjusted"); setAdjustAmount(""); setAdjustNote(""); load(); }
     else { const e = await res.json(); toast.error(e.message ?? "Failed"); }
@@ -50,7 +50,10 @@ export default function AdminUserDetail() {
 
   const handleNotify = async () => {
     if (!notifyMsg.trim()) return;
-    const res = await apiFetch(`/admin/users/${userId}/notify`, { method: "POST", body: JSON.stringify({ message: notifyMsg }) });
+    const res = await apiFetch(`/admin/users/${userId}/notify`, {
+      method: "POST",
+      body: JSON.stringify({ title: "Message from Admin", message: notifyMsg, type: "info" }),
+    });
     if (res.ok) { toast.success("Notification sent"); setNotifyMsg(""); }
     else toast.error("Failed to notify");
   };

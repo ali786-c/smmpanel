@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Save, RotateCcw, Eye, Loader2 } from "lucide-react";
 
 interface LandingField {
@@ -23,7 +23,7 @@ const LANDING_FIELDS: LandingField[] = [
   { key: "landing_hero_subtitle", label: "Hero Subtitle", type: "textarea", section: "Hero", placeholder: "Main description below the hero title" },
   { key: "landing_hero_cta_primary", label: "Primary CTA Button Text", type: "text", section: "Hero", placeholder: "e.g. Launch Campaign" },
   { key: "landing_hero_cta_secondary", label: "Secondary CTA Button Text", type: "text", section: "Hero", placeholder: "e.g. View Dashboard" },
-  
+
   // Stats
   { key: "landing_stat_1_value", label: "Stat 1 Value", type: "text", section: "Stats", placeholder: "e.g. 50ms" },
   { key: "landing_stat_1_label", label: "Stat 1 Label", type: "text", section: "Stats", placeholder: "e.g. Avg Response" },
@@ -82,82 +82,58 @@ export default function AdminLandingEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState(SECTIONS[0]);
-  const { toast } = useToast();
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  useEffect(() => { loadSettings(); }, []);
 
   const loadSettings = async () => {
     setLoading(true);
-    const keys = LANDING_FIELDS.map(f => f.key);
-    const { data } = await supabase
-      .from("system_settings")
-      .select("key, value")
-      .in("key", keys);
-
-    const vals: Record<string, string> = {};
-    (data || []).forEach((row: any) => {
-      vals[row.key] = row.value;
-    });
-    setValues(vals);
-    setOriginalValues({ ...vals });
+    const res = await apiFetch("/admin/settings");
+    if (res.ok) {
+      const raw = await res.json();
+      const flat: Record<string, string> = {};
+      Object.entries(raw).forEach(([k, v]: [string, any]) => {
+        flat[k] = typeof v === "object" ? (v?.value ?? "") : String(v ?? "");
+      });
+      setValues(flat);
+      setOriginalValues({ ...flat });
+    }
     setLoading(false);
   };
 
   const handleSave = async () => {
     setSaving(true);
-    try {
-      const changedKeys = Object.keys(values).filter(k => values[k] !== originalValues[k]);
-      // Also include new keys that weren't in original
-      LANDING_FIELDS.forEach(f => {
-        if (values[f.key] && !originalValues[f.key]) {
-          changedKeys.push(f.key);
-        }
-      });
+    const changedKeys = LANDING_FIELDS
+      .map(f => f.key)
+      .filter(k => values[k] !== undefined && values[k] !== (originalValues[k] ?? ""));
 
-      for (const key of [...new Set(changedKeys)]) {
-        const value = values[key] || "";
-        // Upsert: try update first, insert if not exists
-        const { data: existing } = await supabase
-          .from("system_settings")
-          .select("id")
-          .eq("key", key)
-          .maybeSingle();
+    if (changedKeys.length === 0) { setSaving(false); return; }
 
-        if (existing) {
-          await supabase
-            .from("system_settings")
-            .update({ value, updated_at: new Date().toISOString() })
-            .eq("key", key);
-        } else {
-          await supabase
-            .from("system_settings")
-            .insert({ key, value });
-        }
-      }
+    const settingsPayload: Record<string, string> = {};
+    changedKeys.forEach(k => { settingsPayload[k] = values[k] ?? ""; });
 
+    const res = await apiFetch("/admin/settings", {
+      method: "POST",
+      body: JSON.stringify({ settings: settingsPayload }),
+    });
+
+    if (res.ok) {
       setOriginalValues({ ...values });
-      toast({ title: "Saved", description: `${changedKeys.length} landing page setting(s) updated.` });
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+      toast.success(`${changedKeys.length} landing page setting(s) saved.`);
+    } else {
+      const e = await res.json();
+      toast.error(e.message ?? "Failed to save settings.");
     }
     setSaving(false);
   };
 
-  const handleReset = () => {
-    setValues({ ...originalValues });
-  };
+  const hasChanges = LANDING_FIELDS.some(f => values[f.key] !== (originalValues[f.key] ?? ""));
+  const changedCount = LANDING_FIELDS.filter(f => values[f.key] !== (originalValues[f.key] ?? "")).length;
 
-  const hasChanges = JSON.stringify(values) !== JSON.stringify(originalValues);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -168,11 +144,9 @@ export default function AdminLandingEditor() {
         </div>
         <div className="flex items-center gap-2">
           <a href="/" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">
-              <Eye className="w-4 h-4 mr-1" /> Preview
-            </Button>
+            <Button variant="outline" size="sm"><Eye className="w-4 h-4 mr-1" /> Preview</Button>
           </a>
-          <Button variant="outline" size="sm" onClick={handleReset} disabled={!hasChanges}>
+          <Button variant="outline" size="sm" onClick={() => setValues({ ...originalValues })} disabled={!hasChanges}>
             <RotateCcw className="w-4 h-4 mr-1" /> Reset
           </Button>
           <Button size="sm" onClick={handleSave} disabled={!hasChanges || saving} className="gradient-primary text-primary-foreground">
@@ -206,7 +180,9 @@ export default function AdminLandingEditor() {
           {LANDING_FIELDS.filter(f => f.section === activeSection).map(field => (
             <div key={field.key}>
               <Label className="text-sm mb-1.5 block">{field.label}</Label>
-              <p className="text-xs text-muted-foreground mb-2">Key: <code className="font-mono bg-muted px-1 py-0.5 rounded">{field.key}</code></p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Key: <code className="font-mono bg-muted px-1 py-0.5 rounded">{field.key}</code>
+              </p>
               {field.type === "textarea" ? (
                 <Textarea
                   value={values[field.key] || ""}
@@ -231,7 +207,7 @@ export default function AdminLandingEditor() {
         <div className="sticky bottom-4 flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="gradient-primary text-primary-foreground shadow-lg">
             {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
-            Save {Object.keys(values).filter(k => values[k] !== originalValues[k]).length} Change(s)
+            Save {changedCount} Change(s)
           </Button>
         </div>
       )}

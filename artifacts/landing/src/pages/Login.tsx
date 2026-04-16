@@ -9,7 +9,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "@/lib/api";
 import { loginUser } from "@/hooks/useAuth";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA";
 
@@ -20,7 +20,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [cfToken, setCfToken] = useState<string | null>(null);
-  const turnstileRef = useRef<{ reset: () => void }>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

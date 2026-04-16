@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Save, Palette, Type, RotateCcw } from "lucide-react";
 
 interface ThemeConfig {
@@ -61,9 +60,7 @@ function hslToHex(hsl: string): string {
       return Math.round(255 * color).toString(16).padStart(2, "0");
     };
     return `#${f(0)}${f(8)}${f(4)}`;
-  } catch {
-    return "#22c55e";
-  }
+  } catch { return "#22c55e"; }
 }
 
 function hexToHsl(hex: string): string {
@@ -82,52 +79,56 @@ function hexToHsl(hex: string): string {
       else h = ((r - g) / d + 4) * 60;
     }
     return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-  } catch {
-    return "163 58% 50%";
-  }
+  } catch { return "163 58% 50%"; }
 }
 
 export default function AdminThemeEditor() {
-  const { user } = useAuth();
   const [theme, setTheme] = useState<ThemeConfig>(defaultTheme);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewDark, setPreviewDark] = useState(true);
 
-  useEffect(() => {
-    supabase.from("system_settings").select("key, value")
-      .like("key", "theme_%")
-      .then(({ data }) => {
-        if (data?.length) {
-          const loaded = { ...defaultTheme };
-          data.forEach((s: any) => {
-            const k = s.key.replace("theme_", "") as keyof ThemeConfig;
-            if (k in loaded) loaded[k] = s.value;
-          });
-          setTheme(loaded);
+  useEffect(() => { loadTheme(); }, []);
+
+  const loadTheme = async () => {
+    setLoading(true);
+    const res = await apiFetch("/admin/settings");
+    if (res.ok) {
+      const raw = await res.json();
+      const loaded = { ...defaultTheme };
+      Object.entries(raw).forEach(([k, v]: [string, any]) => {
+        if (k.startsWith("theme_")) {
+          const themeKey = k.replace("theme_", "") as keyof ThemeConfig;
+          if (themeKey in loaded) {
+            loaded[themeKey] = typeof v === "object" ? (v?.value ?? "") : String(v ?? "");
+          }
         }
-        setLoading(false);
       });
-  }, []);
+      setTheme(loaded);
+    }
+    setLoading(false);
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    const entries = Object.entries(theme);
-    for (const [key, value] of entries) {
-      const fullKey = `theme_${key}`;
-      const { data: existing } = await supabase
-        .from("system_settings").select("id").eq("key", fullKey).maybeSingle();
-      if (existing) {
-        await supabase.from("system_settings").update({ value, updated_by: user?.id }).eq("key", fullKey);
-      } else {
-        await supabase.from("system_settings").insert({ key: fullKey, value, updated_by: user?.id });
-      }
-    }
+    const settingsPayload: Record<string, string> = {};
+    Object.entries(theme).forEach(([key, value]) => {
+      settingsPayload[`theme_${key}`] = value;
+    });
 
-    // Apply theme to CSS
-    applyTheme(theme);
+    const res = await apiFetch("/admin/settings", {
+      method: "POST",
+      body: JSON.stringify({ settings: settingsPayload }),
+    });
+
+    if (res.ok) {
+      applyTheme(theme);
+      toast.success("Theme saved & applied!");
+    } else {
+      const e = await res.json();
+      toast.error(e.message ?? "Failed to save theme.");
+    }
     setSaving(false);
-    toast.success("Theme saved & applied!");
   };
 
   const applyTheme = (t: ThemeConfig) => {
@@ -138,16 +139,15 @@ export default function AdminThemeEditor() {
     root.style.setProperty("--radius", `${t.border_radius}rem`);
   };
 
-  const handleReset = () => {
-    setTheme(defaultTheme);
-    toast.info("Reset to defaults — save to apply");
-  };
-
   const updateColor = (key: keyof ThemeConfig, hex: string) => {
-    setTheme((prev) => ({ ...prev, [key]: hexToHsl(hex) }));
+    setTheme(prev => ({ ...prev, [key]: hexToHsl(hex) }));
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    </div>
+  );
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -156,7 +156,7 @@ export default function AdminThemeEditor() {
           <Palette className="w-5 h-5 text-primary" /> Theme Editor
         </h2>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset}>
+          <Button variant="outline" size="sm" onClick={() => { setTheme(defaultTheme); toast.info("Reset to defaults — save to apply"); }}>
             <RotateCcw className="w-3 h-3 mr-1" /> Reset
           </Button>
           <Button onClick={handleSave} disabled={saving} className="gradient-primary text-primary-foreground font-bold gap-2">
@@ -247,9 +247,7 @@ export default function AdminThemeEditor() {
         <div
           className="rounded-xl p-6 border border-border"
           style={{
-            background: previewDark
-              ? `hsl(${theme.background_dark})`
-              : `hsl(${theme.background_light})`,
+            background: previewDark ? `hsl(${theme.background_dark})` : `hsl(${theme.background_light})`,
             color: previewDark ? "#e2e8f0" : "#1e293b",
           }}
         >
@@ -260,21 +258,17 @@ export default function AdminThemeEditor() {
             This is how your platform will look with the selected theme.
           </p>
           <div className="flex gap-2 flex-wrap">
-            <span style={{ background: `hsl(${theme.primary_color})`, color: "#fff", padding: "6px 16px", borderRadius: `${theme.border_radius}rem`, fontSize: "0.8rem", fontWeight: 600 }}>
-              Primary Button
-            </span>
-            <span style={{ background: `hsl(${theme.accent_color})`, color: "#fff", padding: "6px 16px", borderRadius: `${theme.border_radius}rem`, fontSize: "0.8rem" }}>
-              Accent
-            </span>
-            <span style={{ background: `hsl(${theme.success_color})`, color: "#fff", padding: "6px 16px", borderRadius: `${theme.border_radius}rem`, fontSize: "0.8rem" }}>
-              Success
-            </span>
-            <span style={{ background: `hsl(${theme.warning_color})`, color: "#fff", padding: "6px 16px", borderRadius: `${theme.border_radius}rem`, fontSize: "0.8rem" }}>
-              Warning
-            </span>
-            <span style={{ background: `hsl(${theme.destructive_color})`, color: "#fff", padding: "6px 16px", borderRadius: `${theme.border_radius}rem`, fontSize: "0.8rem" }}>
-              Danger
-            </span>
+            {[
+              { label: "Primary Button", color: theme.primary_color },
+              { label: "Accent", color: theme.accent_color },
+              { label: "Success", color: theme.success_color },
+              { label: "Warning", color: theme.warning_color },
+              { label: "Danger", color: theme.destructive_color },
+            ].map(({ label, color }) => (
+              <span key={label} style={{ background: `hsl(${color})`, color: "#fff", padding: "6px 16px", borderRadius: `${theme.border_radius}rem`, fontSize: "0.8rem", fontWeight: 600 }}>
+                {label}
+              </span>
+            ))}
           </div>
         </div>
       </div>

@@ -7,13 +7,13 @@ import { toast } from "sonner";
 import { Loader2, Megaphone, Send } from "lucide-react";
 
 export default function AdminMassNotification() {
-  const [form, setForm] = useState({ title: "", message: "", target: "all" });
+  const [form, setForm] = useState({ title: "", message: "", filter: "all" });
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirm(`Send notification to all ${form.target} users?`)) return;
+    if (!confirm(`Send notification to ${form.filter} users?`)) return;
     setSending(true);
     const res = await apiFetch("/admin/notifications/mass-send", { method: "POST", body: JSON.stringify(form) });
     if (res.ok) { const d = await res.json(); toast.success(`Sent to ${d.sent ?? d.recipients ?? "all"} users`); setLastResult(d); setForm(f => ({ ...f, title: "", message: "" })); }
@@ -28,12 +28,11 @@ export default function AdminMassNotification() {
       <form onSubmit={handleSend} className="glass rounded-2xl p-6 space-y-4">
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Target Audience</label>
-          <select value={form.target} onChange={e => setForm(f => ({...f, target: e.target.value}))}
+          <select value={form.filter} onChange={e => setForm(f => ({...f, filter: e.target.value}))}
             className="w-full h-10 rounded-xl border border-border bg-background text-sm px-3 text-foreground">
             <option value="all">All Users</option>
             <option value="active">Active Users (ordered in last 30 days)</option>
-            <option value="inactive">Inactive Users</option>
-            <option value="low_balance">Low Balance Users</option>
+            <option value="inactive">Inactive Users (no order in 30 days)</option>
           </select>
         </div>
         <div>

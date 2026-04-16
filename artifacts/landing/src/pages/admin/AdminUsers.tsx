@@ -43,7 +43,7 @@ export default function AdminUsers() {
   const handleAdjust = async () => {
     if (!adjustId || !adjustAmount) return;
     const res = await apiFetch(`/admin/users/${adjustId}/adjust-balance`, {
-      method: "POST", body: JSON.stringify({ amount: parseFloat(adjustAmount), note: adjustNote }),
+      method: "POST", body: JSON.stringify({ amount: parseFloat(adjustAmount), reason: adjustNote || "Admin adjustment" }),
     });
     if (res.ok) { toast.success("Balance adjusted"); setAdjustId(null); setAdjustAmount(""); setAdjustNote(""); load(page, search); }
     else { const e = await res.json(); toast.error(e.message ?? "Failed"); }
