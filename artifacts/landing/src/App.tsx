@@ -17,7 +17,6 @@ import ResetPassword from "./pages/ResetPassword";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Dashboard from "./pages/Dashboard";
-import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 // Dashboard sub-pages
@@ -34,6 +33,29 @@ import SpendingAnalytics from "./pages/dashboard/SpendingAnalytics";
 import Settings from "./pages/dashboard/Settings";
 import AccountManagement from "./pages/dashboard/AccountManagement";
 import Support from "./pages/dashboard/Support";
+
+// Admin pages
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserDetail from "./pages/admin/AdminUserDetail";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminManualOrder from "./pages/admin/AdminManualOrder";
+import AdminServices from "./pages/admin/AdminServices";
+import AdminMarkupEditor from "./pages/admin/AdminMarkupEditor";
+import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminTickets from "./pages/admin/AdminTickets";
+import AdminFinance from "./pages/admin/AdminFinance";
+import AdminRefunds from "./pages/admin/AdminRefunds";
+import AdminRevenueExport from "./pages/admin/AdminRevenueExport";
+import AdminProviderSync from "./pages/admin/AdminProviderSync";
+import AdminBlog from "./pages/admin/AdminBlog";
+import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
+import AdminMassNotification from "./pages/admin/AdminMassNotification";
+import AdminAffiliates from "./pages/admin/AdminAffiliates";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminActivityLog from "./pages/admin/AdminActivityLog";
+import AdminGrowth from "./pages/admin/AdminGrowth";
+import AdminSystemSettings from "./pages/admin/AdminSystemSettings";
 
 const queryClient = new QueryClient();
 
@@ -61,7 +83,7 @@ const App = () => (
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
 
-              {/* Dashboard (protected) */}
+              {/* User Dashboard (protected) */}
               <Route path="/dashboard" element={<Dashboard />}>
                 <Route path="new-order" element={<NewOrder />} />
                 <Route path="mass-order" element={<MassOrder />} />
@@ -79,7 +101,29 @@ const App = () => (
               </Route>
 
               {/* Admin panel (protected, admin-only) */}
-              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="users/:userId" element={<AdminUserDetail />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="create-order" element={<AdminManualOrder />} />
+                <Route path="services" element={<AdminServices />} />
+                <Route path="markup" element={<AdminMarkupEditor />} />
+                <Route path="coupons" element={<AdminCoupons />} />
+                <Route path="tickets" element={<AdminTickets />} />
+                <Route path="finance" element={<AdminFinance />} />
+                <Route path="refunds" element={<AdminRefunds />} />
+                <Route path="revenue" element={<AdminRevenueExport />} />
+                <Route path="provider" element={<AdminProviderSync />} />
+                <Route path="blog" element={<AdminBlog />} />
+                <Route path="announcements" element={<AdminAnnouncements />} />
+                <Route path="mass-notify" element={<AdminMassNotification />} />
+                <Route path="affiliates" element={<AdminAffiliates />} />
+                <Route path="categories" element={<AdminCategories />} />
+                <Route path="activity" element={<AdminActivityLog />} />
+                <Route path="growth" element={<AdminGrowth />} />
+                <Route path="settings" element={<AdminSystemSettings />} />
+                <Route path="payments" element={<AdminFinance />} />
+              </Route>
 
               {/* Fallback */}
               <Route path="*" element={<NotFound />} />

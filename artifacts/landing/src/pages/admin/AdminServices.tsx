@@ -1,268 +1,144 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Search, Loader2, Activity, AlertTriangle, CheckCircle, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
-
-interface ServiceRow {
-  id: string;
-  name: string;
-  platform: string;
-  category: string;
-  rate: number;
-  min_order: number;
-  max_order: number;
-  health_score: number;
-  is_active: boolean;
-  external_service_id: number;
-  refill: boolean;
-  cancel: boolean;
-}
+import { Loader2, Search, Plus, Edit2, Trash2, Layers, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 
 export default function AdminServices() {
-  const [services, setServices] = useState<ServiceRow[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterHealth, setFilterHealth] = useState<"all" | "healthy" | "warning" | "critical">("all");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>({});
+  const perPage = 30;
 
-  useEffect(() => {
-    supabase
-      .from("services")
-      .select("*")
-      .order("health_score", { ascending: true })
-      .then(({ data }) => {
-        setServices((data as ServiceRow[]) || []);
-        setLoading(false);
-      });
-  }, []);
-
-  const toggleService = async (id: string, currentActive: boolean) => {
-    const { error } = await supabase
-      .from("services")
-      .update({ is_active: !currentActive })
-      .eq("id", id);
-    if (error) {
-      toast.error("Failed to update service");
-      return;
+  const load = async (p = 1, q = "") => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(p), per_page: String(perPage) });
+    if (q) params.set("search", q);
+    const res = await apiFetch(`/admin/services?${params}`);
+    if (res.ok) {
+      const d = await res.json();
+      setServices(d.data ?? d.services ?? []);
+      setTotal(d.total ?? d.meta?.total ?? 0);
     }
-    setServices((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, is_active: !currentActive } : s))
-    );
-    toast.success(currentActive ? "Service disabled" : "Service enabled");
+    setLoading(false);
   };
 
-  const resetHealth = async (id: string) => {
-    const { error } = await supabase
-      .from("services")
-      .update({ health_score: 100 })
-      .eq("id", id);
-    if (error) {
-      toast.error("Failed to reset health");
-      return;
-    }
-    setServices((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, health_score: 100 } : s))
-    );
-    toast.success("Health score reset to 100");
+  useEffect(() => { load(); }, []);
+
+  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setPage(1); load(1, search); };
+
+  const handleToggleActive = async (id: string, active: boolean) => {
+    const res = await apiFetch(`/admin/services/${id}`, { method: "PATCH", body: JSON.stringify({ is_active: !active }) });
+    if (res.ok) { setServices(s => s.map(x => x.id === id ? { ...x, is_active: !active } : x)); }
+    else toast.error("Update failed");
   };
 
-  const filtered = services.filter((s) => {
-    const q = search.toLowerCase();
-    const nameMatch = s.name.toLowerCase().includes(q) || s.platform.toLowerCase().includes(q) || s.category.toLowerCase().includes(q);
-    if (!nameMatch) return false;
-    if (filterHealth === "healthy") return s.health_score >= 80;
-    if (filterHealth === "warning") return s.health_score >= 40 && s.health_score < 80;
-    if (filterHealth === "critical") return s.health_score < 40;
-    return true;
-  });
+  const handleSaveEdit = async () => {
+    if (!editId) return;
+    const res = await apiFetch(`/admin/services/${editId}`, { method: "PATCH", body: JSON.stringify(editData) });
+    if (res.ok) { toast.success("Service updated"); setEditId(null); load(page, search); }
+    else toast.error("Update failed");
+  };
 
-  const healthyCnt = services.filter((s) => s.health_score >= 80).length;
-  const warningCnt = services.filter((s) => s.health_score >= 40 && s.health_score < 80).length;
-  const criticalCnt = services.filter((s) => s.health_score < 40).length;
-  const _activeCnt = services.filter((s) => s.is_active).length;
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this service?")) return;
+    const res = await apiFetch(`/admin/services/${id}`, { method: "DELETE" });
+    if (res.ok) { toast.success("Deleted"); load(page, search); }
+    else toast.error("Delete failed");
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const pages = Math.ceil(total / perPage);
 
   return (
-    <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="glass rounded-2xl p-5 text-center">
-          <Activity className="w-5 h-5 text-primary mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-xl font-heading font-bold">{services.length}</p>
-        </div>
-        <button onClick={() => setFilterHealth("healthy")} className="glass rounded-2xl p-5 text-center hover:glow transition-all">
-          <CheckCircle className="w-5 h-5 text-primary mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Healthy</p>
-          <p className="text-xl font-heading font-bold text-primary">{healthyCnt}</p>
-        </button>
-        <button onClick={() => setFilterHealth("warning")} className="glass rounded-2xl p-5 text-center hover:glow transition-all">
-          <AlertTriangle className="w-5 h-5 text-warning mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Warning</p>
-          <p className="text-xl font-heading font-bold text-warning">{warningCnt}</p>
-        </button>
-        <button onClick={() => setFilterHealth("critical")} className="glass rounded-2xl p-5 text-center hover:glow transition-all">
-          <XCircle className="w-5 h-5 text-destructive mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Critical</p>
-          <p className="text-xl font-heading font-bold text-destructive">{criticalCnt}</p>
-        </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="font-heading font-bold text-lg flex items-center gap-2">
+          <Layers className="w-5 h-5 text-primary" /> Services <span className="text-muted-foreground text-sm font-normal">({total})</span>
+        </h2>
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search services…" className="w-48 h-9 text-sm" />
+          <Button type="submit" size="sm" variant="outline"><Search className="w-4 h-4" /></Button>
+        </form>
       </div>
 
-      {/* Filters + Bulk Actions */}
-      <div className="glass rounded-2xl p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search services..."
-            className="pl-10 bg-secondary/50"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {(["all", "healthy", "warning", "critical"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilterHealth(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filterHealth === f
-                  ? "gradient-primary text-primary-foreground"
-                  : "bg-secondary/50 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs"
-            onClick={async () => {
-              const ids = filtered.filter(s => !s.is_active).map(s => s.id);
-              if (ids.length === 0) { toast.info("All filtered services already active"); return; }
-              await Promise.all(ids.map(id => supabase.from("services").update({ is_active: true }).eq("id", id)));
-              setServices(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_active: true } : s));
-              toast.success(`${ids.length} services enabled`);
-            }}
-          >
-            <ToggleRight className="w-3.5 h-3.5 mr-1" /> Enable All
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs border-destructive/30 text-destructive"
-            onClick={async () => {
-              const ids = filtered.filter(s => s.is_active).map(s => s.id);
-              if (ids.length === 0) { toast.info("All filtered services already disabled"); return; }
-              await Promise.all(ids.map(id => supabase.from("services").update({ is_active: false }).eq("id", id)));
-              setServices(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_active: false } : s));
-              toast.success(`${ids.length} services disabled`);
-            }}
-          >
-            <ToggleLeft className="w-3.5 h-3.5 mr-1" /> Disable All
-          </Button>
-        </div>
-      </div>
-
-      {/* Services Table */}
-      <div className="glass rounded-2xl p-6">
+      <div className="glass rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Service</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Platform</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Rate/1K</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Min/Max</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Health</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Status</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Actions</th>
+                {["ID","Name","Category","Platform","Price","Min","Max","Active","Actions"].map(h => (
+                  <th key={h} className="text-left px-3 py-3 text-xs text-muted-foreground font-medium whitespace-nowrap">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-muted-foreground">No services found</td>
-                </tr>
-              ) : (
-                filtered.map((service) => (
-                  <tr key={service.id} className="border-b border-border/30 hover:bg-secondary/20">
-                    <td className="py-3">
-                      <p className="text-sm font-medium truncate max-w-[250px]">{service.name}</p>
-                      <p className="text-xs text-muted-foreground">ID: {service.external_service_id}</p>
-                    </td>
-                    <td className="py-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">{service.platform}</span>
-                    </td>
-                    <td className="py-3 text-sm font-mono">${service.rate.toFixed(2)}</td>
-                    <td className="py-3 text-xs text-muted-foreground">{service.min_order} - {service.max_order.toLocaleString()}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-2 rounded-full bg-secondary overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              service.health_score >= 80 ? "bg-primary" :
-                              service.health_score >= 40 ? "bg-warning" : "bg-destructive"
-                            }`}
-                            style={{ width: `${service.health_score}%` }}
-                          />
+              {loading ? (
+                <tr><td colSpan={9} className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" /></td></tr>
+              ) : services.length === 0 ? (
+                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">No services — sync from provider</td></tr>
+              ) : services.map(s => (
+                <tr key={s.id} className="border-b border-border/30 hover:bg-secondary/20">
+                  {editId === s.id ? (
+                    <>
+                      <td className="px-3 py-2 text-xs font-mono">{s.provider_service_id ?? s.id}</td>
+                      <td className="px-3 py-2"><Input value={editData.name ?? s.name} onChange={e => setEditData((d: any) => ({...d, name: e.target.value}))} className="h-7 text-xs w-48" /></td>
+                      <td className="px-3 py-2 text-xs">{s.category}</td>
+                      <td className="px-3 py-2 text-xs">{s.platform}</td>
+                      <td className="px-3 py-2"><Input type="number" step="0.0001" value={editData.price ?? s.price} onChange={e => setEditData((d: any) => ({...d, price: e.target.value}))} className="h-7 text-xs w-24" /></td>
+                      <td className="px-3 py-2"><Input type="number" value={editData.min_quantity ?? s.min_quantity} onChange={e => setEditData((d: any) => ({...d, min_quantity: e.target.value}))} className="h-7 text-xs w-20" /></td>
+                      <td className="px-3 py-2"><Input type="number" value={editData.max_quantity ?? s.max_quantity} onChange={e => setEditData((d: any) => ({...d, max_quantity: e.target.value}))} className="h-7 text-xs w-20" /></td>
+                      <td className="px-3 py-2 text-xs">{s.is_active ? "Yes" : "No"}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary" onClick={handleSaveEdit}><Check className="w-3.5 h-3.5" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditId(null)}><X className="w-3.5 h-3.5" /></Button>
                         </div>
-                        <span className={`text-xs font-medium ${
-                          service.health_score >= 80 ? "text-primary" :
-                          service.health_score >= 40 ? "text-warning" : "text-destructive"
-                        }`}>{service.health_score}</span>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        service.is_active ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
-                      }`}>
-                        {service.is_active ? "Active" : "Disabled"}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleService(service.id, service.is_active)}
-                          className="text-xs"
-                          title={service.is_active ? "Disable" : "Enable"}
-                        >
-                          {service.is_active ? (
-                            <ToggleRight className="w-4 h-4 text-primary" />
-                          ) : (
-                            <ToggleLeft className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                        {service.health_score < 100 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => resetHealth(service.id)}
-                            className="text-xs"
-                            title="Reset health"
-                          >
-                            <Activity className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-3 py-2.5 font-mono text-xs">{s.provider_service_id ?? String(s.id).slice(0,8)}</td>
+                      <td className="px-3 py-2.5 text-xs truncate max-w-[150px]">{s.name}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{s.category}</td>
+                      <td className="px-3 py-2.5 text-xs">{s.platform}</td>
+                      <td className="px-3 py-2.5 text-xs font-bold text-primary">${parseFloat(s.price || 0).toFixed(4)}</td>
+                      <td className="px-3 py-2.5 text-xs">{s.min_quantity}</td>
+                      <td className="px-3 py-2.5 text-xs">{s.max_quantity}</td>
+                      <td className="px-3 py-2.5">
+                        <button onClick={() => handleToggleActive(s.id, s.is_active)}
+                          className={`w-8 h-4 rounded-full transition-colors ${s.is_active ? "bg-primary" : "bg-muted"} relative`}>
+                          <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow ${s.is_active ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </button>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditId(s.id); setEditData({}); }}><Edit2 className="w-3.5 h-3.5" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(s.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {pages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground text-xs">Page {page} of {pages}</span>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); load(p, search); }}><ChevronLeft className="w-4 h-4" /></Button>
+            <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => { const p = page + 1; setPage(p); load(p, search); }}><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

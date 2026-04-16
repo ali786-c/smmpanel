@@ -1,147 +1,111 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ShoppingCart } from "lucide-react";
-
-interface UserOption { user_id: string; display_name: string | null; }
-interface ServiceOption { id: string; name: string; rate: number; external_service_id: number; min_order: number; max_order: number; }
+import { Loader2, ShoppingCart, Search } from "lucide-react";
 
 export default function AdminManualOrder() {
-  const { user: adminUser } = useAuth();
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [services, setServices] = useState<ServiceOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [form, setForm] = useState({ user_id: "", service_id: "", quantity: "", link: "", charge_user: true });
   const [submitting, setSubmitting] = useState(false);
-
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [link, setLink] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [deductBalance, setDeductBalance] = useState(true);
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [selectedService, setSelectedService] = useState<any>(null);
 
   useEffect(() => {
-    Promise.all([
-      supabase.from("profiles").select("user_id, display_name"),
-      supabase.from("services").select("id, name, rate, external_service_id, min_order, max_order").eq("is_active", true).order("display_order"),
-    ]).then(([profilesRes, servicesRes]) => {
-      setUsers(profilesRes.data || []);
-      setServices(servicesRes.data || []);
-      setLoading(false);
-    });
+    apiFetch("/admin/services?per_page=500").then(r => r.ok ? r.json() : null).then(d => setServices(d?.data ?? d?.services ?? []));
+    apiFetch("/admin/users?per_page=200").then(r => r.ok ? r.json() : null).then(d => setUsers(d?.data ?? d?.users ?? []));
   }, []);
 
-  const selectedService = services.find((s) => s.id === selectedServiceId);
-  const qty = parseInt(quantity) || 0;
-  const cost = selectedService ? parseFloat(((selectedService.rate / 1000) * qty).toFixed(4)) : 0;
-
-  const handleSubmit = async () => {
-    if (!selectedUserId || !selectedServiceId || !link.trim() || !qty || !adminUser) return;
-    setSubmitting(true);
-    try {
-      // Insert order directly
-      const { data: order, error } = await supabase.from("orders").insert({
-        user_id: selectedUserId,
-        service_id: selectedServiceId,
-        link: link.trim(),
-        quantity: qty,
-        cost,
-        profit: 0,
-        provider_cost: 0,
-        status: "Processing",
-      }).select().single();
-
-      if (error) throw error;
-
-      if (deductBalance) {
-        const { data: wallet } = await supabase.from("wallets").select("balance").eq("user_id", selectedUserId).single();
-        if (wallet) {
-          await supabase.from("wallets").update({ balance: Math.max(0, Number(wallet.balance) - cost) }).eq("user_id", selectedUserId);
-          await supabase.from("wallet_transactions").insert({
-            user_id: selectedUserId,
-            type: "order",
-            amount: -cost,
-            description: `Manual order by admin`,
-            reference_id: order?.id,
-            status: "completed",
-          });
-        }
-      }
-
-      await supabase.from("activity_log").insert({
-        actor_id: adminUser.id,
-        action: "manual_order_created",
-        target_type: "order",
-        target_id: order?.id,
-        details: { user_id: selectedUserId, service_id: selectedServiceId, quantity: qty, cost },
-      });
-
-      toast.success("Order created successfully");
-      setLink("");
-      setQuantity("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create order");
-    } finally {
-      setSubmitting(false);
-    }
+  const handleServiceSelect = (svc: any) => {
+    setSelectedService(svc);
+    setForm(f => ({ ...f, service_id: svc.id, quantity: String(svc.min_quantity ?? 100) }));
+    setServiceSearch(svc.name);
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  const filteredServices = serviceSearch && !selectedService
+    ? services.filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase())).slice(0, 10)
+    : [];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.user_id || !form.service_id || !form.link || !form.quantity) {
+      toast.error("Fill all fields"); return;
+    }
+    setSubmitting(true);
+    const res = await apiFetch("/admin/orders/manual", {
+      method: "POST",
+      body: JSON.stringify({ ...form, quantity: parseInt(form.quantity), charge_user: form.charge_user }),
+    });
+    if (res.ok) { toast.success("Order created"); setForm({ user_id: "", service_id: "", quantity: "", link: "", charge_user: true }); setSelectedService(null); setServiceSearch(""); }
+    else { const e = await res.json(); toast.error(e.message ?? "Order creation failed"); }
+    setSubmitting(false);
+  };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="glass rounded-2xl p-6 space-y-5">
-        <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
-          <ShoppingCart className="w-5 h-5 text-primary" /> Create Order for User
-        </h3>
+    <div className="space-y-4 max-w-xl">
+      <h2 className="font-heading font-bold text-lg flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-primary" /> Create Manual Order</h2>
 
-        <div className="space-y-1">
-          <Label className="text-sm">User</Label>
-          <select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)} className="w-full glass rounded-xl p-3 text-sm bg-transparent focus:outline-none">
-            <option value="">Select user</option>
-            {users.map((u) => (
-              <option key={u.user_id} value={u.user_id}>{u.display_name || u.user_id.slice(0, 12)}</option>
-            ))}
+      <form onSubmit={handleSubmit} className="glass rounded-2xl p-6 space-y-4">
+        <div>
+          <Label className="text-xs">User</Label>
+          <select required value={form.user_id} onChange={e => setForm(f => ({...f, user_id: e.target.value}))}
+            className="w-full h-10 rounded-xl border border-border bg-background text-sm px-3 text-foreground mt-1.5">
+            <option value="">Select user…</option>
+            {users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
           </select>
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-sm">Service</Label>
-          <select value={selectedServiceId} onChange={(e) => setSelectedServiceId(e.target.value)} className="w-full glass rounded-xl p-3 text-sm bg-transparent focus:outline-none">
-            <option value="">Select service</option>
-            {services.map((s) => (
-              <option key={s.id} value={s.id}>{s.external_service_id} - {s.name} — ${s.rate.toFixed(4)}/1K</option>
-            ))}
-          </select>
+        <div className="relative">
+          <Label className="text-xs">Service</Label>
+          <div className="relative mt-1.5">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+            <Input value={serviceSearch} onChange={e => { setServiceSearch(e.target.value); setSelectedService(null); setForm(f => ({...f, service_id: ""})); }}
+              placeholder="Search service…" className="pl-9 text-sm" />
+          </div>
+          {filteredServices.length > 0 && (
+            <div className="absolute top-full mt-1 left-0 right-0 z-10 bg-background border border-border rounded-xl shadow-lg overflow-hidden">
+              {filteredServices.map(s => (
+                <button key={s.id} type="button" onClick={() => handleServiceSelect(s)}
+                  className="w-full text-left px-4 py-2.5 text-xs hover:bg-secondary/50 transition-colors border-b border-border/30 last:border-0">
+                  <span className="font-medium">{s.name}</span>
+                  <span className="text-muted-foreground ml-2">${parseFloat(s.price || 0).toFixed(4)} · {s.min_quantity}–{s.max_quantity}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-sm">Link</Label>
-          <Input placeholder="https://..." value={link} onChange={(e) => setLink(e.target.value)} className="bg-secondary/50" />
+        {selectedService && (
+          <div className="bg-secondary/30 rounded-xl p-3 text-xs">
+            <p className="font-medium">{selectedService.name}</p>
+            <p className="text-muted-foreground">Price: ${parseFloat(selectedService.price || 0).toFixed(4)} · Min: {selectedService.min_quantity} · Max: {selectedService.max_quantity}</p>
+          </div>
+        )}
+
+        <div>
+          <Label className="text-xs">Target URL / Link</Label>
+          <Input required value={form.link} onChange={e => setForm(f => ({...f, link: e.target.value}))} placeholder="https://instagram.com/…" className="mt-1.5 text-sm" />
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-sm">Quantity</Label>
-          <Input type="number" placeholder={selectedService ? `${selectedService.min_order} - ${selectedService.max_order}` : "Select service"} value={quantity} onChange={(e) => setQuantity(e.target.value)} className="bg-secondary/50" />
+        <div>
+          <Label className="text-xs">Quantity</Label>
+          <Input required type="number" min={selectedService?.min_quantity ?? 1} max={selectedService?.max_quantity}
+            value={form.quantity} onChange={e => setForm(f => ({...f, quantity: e.target.value}))} className="mt-1.5 text-sm" />
         </div>
 
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id="deduct" checked={deductBalance} onChange={(e) => setDeductBalance(e.target.checked)} className="rounded" />
-          <Label htmlFor="deduct" className="text-sm cursor-pointer">Deduct from user's wallet</Label>
-        </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={form.charge_user} onChange={e => setForm(f => ({...f, charge_user: e.target.checked}))} className="rounded" />
+          Deduct from user balance
+        </label>
 
-        <div className="glass rounded-xl p-3 flex justify-between">
-          <span className="text-sm text-muted-foreground">Cost</span>
-          <span className="font-heading font-bold text-primary">${cost.toFixed(4)}</span>
-        </div>
-
-        <Button onClick={handleSubmit} disabled={submitting || !selectedUserId || !selectedServiceId || !link.trim() || !qty} className="w-full gradient-primary text-primary-foreground font-bold">
-          {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating...</> : "Create Order"}
+        <Button type="submit" disabled={submitting} className="w-full gradient-primary text-primary-foreground font-bold gap-2">
+          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
+          {submitting ? "Creating…" : "Create Order"}
         </Button>
-      </div>
+      </form>
     </div>
   );
 }

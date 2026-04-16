@@ -1,89 +1,79 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  Loader2, Zap, RefreshCw, BookOpen, Megaphone, Users, Gift,
-  TrendingUp, Clock, Play, ShoppingCart, Calendar, BarChart3, Code
-} from "lucide-react";
+import { Loader2, Zap, RefreshCw, Clock, Play, TrendingUp, Gift, Bell, Users, Mail, Star } from "lucide-react";
 
-interface AutomationAction {
-  key: string;
-  label: string;
-  description: string;
-  icon: React.ElementType;
-  schedule: string;
-}
-
-const automations: AutomationAction[] = [
-  { key: "re-engagement", label: "Re-engagement Notifications", description: "Send 10% off coupon to users inactive for 30+ days", icon: Users, schedule: "Daily at 9 AM UTC" },
-  { key: "auto-promo", label: "Auto Promo Campaigns", description: "Weekend promos, auto-expire old coupons", icon: Megaphone, schedule: "Daily at 9 AM UTC" },
-  { key: "blog-autopilot", label: "SEO Blog Autopilot", description: "Auto-generate & publish SEO blog posts (up to 2/day)", icon: BookOpen, schedule: "Daily at 6 AM UTC" },
-  { key: "loyalty-check", label: "Loyalty Rewards", description: "Auto-credit bonus balance at spending milestones (DB trigger)", icon: Gift, schedule: "On every order (trigger)" },
-  { key: "abandoned-recovery", label: "Abandoned Order Recovery", description: "Nudge users with balance but no recent orders with 5% coupon", icon: ShoppingCart, schedule: "Daily at 9 AM UTC" },
-  { key: "milestone-celebration", label: "Milestone Celebrations", description: "Celebrate 10/50/100/500 orders with exclusive discount codes", icon: TrendingUp, schedule: "Daily at 9 AM UTC" },
-  { key: "seasonal-campaigns", label: "Seasonal Auto-Campaigns", description: "Holiday-themed promos (Black Friday, Christmas, New Year, etc.)", icon: Calendar, schedule: "Daily at 9 AM UTC" },
-  { key: "social-proof", label: "Social Proof Amplification", description: "Auto-publish platform stats & testimonials to blog", icon: BarChart3, schedule: "Daily at 9 AM UTC" },
-  { key: "api-nurturing", label: "API User Nurturing", description: "Detect API key generated but no orders — send tutorial notification", icon: Code, schedule: "Daily at 9 AM UTC" },
+const automations = [
+  { key: "retention",   label: "Retention Emails",        description: "Send re-engagement emails to inactive users",      icon: Mail,     schedule: "Daily" },
+  { key: "upsell",      label: "Upsell Campaigns",        description: "Suggest higher-value services to active users",     icon: TrendingUp, schedule: "Weekly" },
+  { key: "referral",    label: "Referral Rewards",        description: "Process and reward referral commissions",           icon: Gift,     schedule: "Hourly" },
+  { key: "review",      label: "Review Requests",         description: "Ask satisfied customers to leave reviews",          icon: Star,     schedule: "Daily" },
+  { key: "welcome",     label: "Welcome Series",          description: "Onboard new users with tips and service picks",     icon: Users,    schedule: "On signup" },
+  { key: "alert",       label: "Low Balance Alerts",      description: "Notify users when wallet balance is low",           icon: Bell,     schedule: "Daily" },
 ];
 
 export default function AdminGrowth() {
   const [running, setRunning] = useState<string | null>(null);
-  const [results, setResults] = useState<Record<string, unknown>>({});
+  const [results, setResults] = useState<Record<string, any>>({});
+  const [stats, setStats] = useState<any>(null);
 
-  const runAction = async (action: string) => {
-    setRunning(action);
-    try {
-      const { data, error } = await supabase.functions.invoke("growth-automation", { body: { action } });
-      if (error) throw error;
-      setResults((prev) => ({ ...prev, [action]: data?.results?.[action] || data?.results || data }));
-      toast.success(`${action} completed`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed");
-    } finally {
-      setRunning(null);
-    }
+  const runAction = async (key: string) => {
+    setRunning(key);
+    const res = await apiFetch("/admin/growth/run", { method: "POST", body: JSON.stringify({ action: key }) });
+    if (res.ok) { const d = await res.json(); toast.success(`${key} ran successfully`); setResults(r => ({...r, [key]: d})); }
+    else toast.error(`${key} failed`);
+    setRunning(null);
   };
 
   const runAll = async () => {
     setRunning("all");
-    try {
-      const { data, error } = await supabase.functions.invoke("growth-automation", { body: { action: "all" } });
-      if (error) throw error;
-      setResults(data?.results || {});
-      toast.success("All growth automations completed");
-    } catch (err: any) {
-      toast.error(err.message || "Failed");
-    } finally {
-      setRunning(null);
-    }
+    const res = await apiFetch("/admin/growth/run", { method: "POST", body: JSON.stringify({ action: "all" }) });
+    if (res.ok) { const d = await res.json(); toast.success("All automations triggered"); setResults(d); }
+    else toast.error("Failed to run all");
+    setRunning(null);
+  };
+
+  const loadStats = async () => {
+    const res = await apiFetch("/admin/growth/stats");
+    if (res.ok) { setStats(await res.json()); }
+    else toast.error("Could not load stats");
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl">
       <div className="glass rounded-2xl p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h3 className="font-heading font-bold text-xl flex items-center gap-2">
-              <Zap className="w-5 h-5 text-primary" /> Growth Engine
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              9 automated growth systems — retention, acquisition & engagement
-            </p>
+            <h2 className="font-heading font-bold text-xl flex items-center gap-2"><Zap className="w-5 h-5 text-primary" /> Growth Engine</h2>
+            <p className="text-sm text-muted-foreground mt-1">Automated growth systems — retention, acquisition & engagement</p>
           </div>
-          <Button onClick={runAll} disabled={running !== null} className="gradient-primary text-primary-foreground font-bold">
-            {running === "all" ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Running All...</> : <><Play className="w-4 h-4 mr-2" /> Run All Now</>}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={loadStats} variant="outline" size="sm" className="gap-2">
+              <TrendingUp className="w-4 h-4" /> Load Stats
+            </Button>
+            <Button onClick={runAll} disabled={running !== null} className="gradient-primary text-primary-foreground font-bold gap-2">
+              {running === "all" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              Run All
+            </Button>
+          </div>
         </div>
       </div>
 
+      {stats && (
+        <div className="glass rounded-2xl p-5">
+          <h3 className="font-heading font-semibold mb-3 text-sm">Growth Stats</h3>
+          <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap">{JSON.stringify(stats, null, 2)}</pre>
+        </div>
+      )}
+
       <div className="grid gap-4">
-        {automations.map((auto) => (
+        {automations.map(auto => (
           <div key={auto.key} className="glass rounded-2xl p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
                   <auto.icon className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
@@ -95,8 +85,8 @@ export default function AdminGrowth() {
                   </div>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => runAction(auto.key)} disabled={running !== null}>
-                {running === auto.key ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-3 h-3 mr-1" /> Run</>}
+              <Button variant="outline" size="sm" onClick={() => runAction(auto.key)} disabled={running !== null} className="gap-2 flex-shrink-0">
+                {running === auto.key ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Run
               </Button>
             </div>
             {results[auto.key] && (

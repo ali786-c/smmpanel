@@ -1,239 +1,136 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Search, Loader2, Users, Shield, Ban, DollarSign, Eye } from "lucide-react";
-
-interface UserRow {
-  user_id: string;
-  display_name: string | null;
-  phone: string | null;
-  created_at: string;
-  balance: number;
-  orderCount: number;
-  totalSpent: number;
-  role: string;
-}
+import { Search, Loader2, Users, Ban, DollarSign, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [adjustId, setAdjustId] = useState<string | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const perPage = 25;
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      // Fetch profiles, wallets, orders, and roles
-      const [profilesRes, walletsRes, ordersRes, rolesRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, display_name, phone, created_at"),
-        supabase.from("wallets").select("user_id, balance"),
-        supabase.from("orders").select("user_id, cost"),
-        supabase.from("user_roles").select("user_id, role"),
-      ]);
-
-      const profiles = profilesRes.data || [];
-      const wallets = walletsRes.data || [];
-      const orders = ordersRes.data || [];
-      const roles = rolesRes.data || [];
-
-      const walletMap = new Map(wallets.map((w: any) => [w.user_id, parseFloat(String(w.balance))]));
-      const roleMap = new Map(roles.map((r: any) => [r.user_id, r.role]));
-
-      // Aggregate orders per user
-      const orderAgg = new Map<string, { count: number; spent: number }>();
-      orders.forEach((o: any) => {
-        const existing = orderAgg.get(o.user_id) || { count: 0, spent: 0 };
-        existing.count++;
-        existing.spent += parseFloat(String(o.cost || 0));
-        orderAgg.set(o.user_id, existing);
-      });
-
-      const userRows: UserRow[] = profiles.map((p: any) => {
-        const agg = orderAgg.get(p.user_id) || { count: 0, spent: 0 };
-        return {
-          user_id: p.user_id,
-          display_name: p.display_name,
-          phone: p.phone,
-          created_at: p.created_at,
-          balance: walletMap.get(p.user_id) || 0,
-          orderCount: agg.count,
-          totalSpent: agg.spent,
-          role: roleMap.get(p.user_id) || "user",
-        };
-      });
-
-      setUsers(userRows.sort((a, b) => b.totalSpent - a.totalSpent));
-      setLoading(false);
-    };
-    fetchUsers();
-  }, []);
-
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
-    return (
-      (u.display_name?.toLowerCase() || "").includes(q) ||
-      u.user_id.toLowerCase().includes(q) ||
-      (u.phone?.toLowerCase() || "").includes(q)
-    );
-  });
-
-  const handleToggleAdmin = async (userId: string, currentRole: string) => {
-    if (currentRole === "admin") {
-      const { error } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role", "admin");
-      if (error) {
-        toast.error("Failed to remove admin role");
-        return;
-      }
-      setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, role: "user" } : u)));
-      toast.success("Admin role removed");
-    } else {
-      const { error } = await supabase
-        .from("user_roles")
-        .insert({ user_id: userId, role: "admin" });
-      if (error) {
-        toast.error("Failed to add admin role");
-        return;
-      }
-      setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, role: "admin" } : u)));
-      toast.success("Admin role granted");
+  const load = async (p = 1, q = "") => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(p), per_page: String(perPage) });
+    if (q) params.set("search", q);
+    const res = await apiFetch(`/admin/users?${params}`);
+    if (res.ok) {
+      const d = await res.json();
+      setUsers(d.data ?? d.users ?? []);
+      setTotal(d.total ?? d.meta?.total ?? 0);
     }
+    setLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  useEffect(() => { load(); }, []);
+
+  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setPage(1); load(1, search); };
+
+  const handleBan = async (id: string, banned: boolean) => {
+    const res = await apiFetch(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ is_banned: !banned }) });
+    if (res.ok) { toast.success(!banned ? "User banned" : "Unbanned"); setUsers(u => u.map(x => x.id === id ? { ...x, is_banned: !banned } : x)); }
+    else toast.error("Failed");
+  };
+
+  const handleAdjust = async () => {
+    if (!adjustId || !adjustAmount) return;
+    const res = await apiFetch(`/admin/users/${adjustId}/adjust-balance`, {
+      method: "POST", body: JSON.stringify({ amount: parseFloat(adjustAmount), note: adjustNote }),
+    });
+    if (res.ok) { toast.success("Balance adjusted"); setAdjustId(null); setAdjustAmount(""); setAdjustNote(""); load(page, search); }
+    else { const e = await res.json(); toast.error(e.message ?? "Failed"); }
+  };
+
+  const pages = Math.ceil(total / perPage);
 
   return (
-    <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass rounded-2xl p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <Users className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total Users</p>
-              <p className="text-xl font-heading font-bold">{users.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="glass rounded-2xl p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <Shield className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Admins</p>
-              <p className="text-xl font-heading font-bold">{users.filter((u) => u.role === "admin").length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="glass rounded-2xl p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total Balances</p>
-              <p className="text-xl font-heading font-bold">${users.reduce((s, u) => s + u.balance, 0).toFixed(2)}</p>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="font-heading font-bold text-lg flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" /> Users <span className="text-muted-foreground text-sm font-normal">({total})</span>
+        </h2>
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search email or name…" className="w-56 h-9 text-sm" />
+          <Button type="submit" size="sm" variant="outline"><Search className="w-4 h-4" /></Button>
+        </form>
       </div>
 
-      {/* Search */}
-      <div className="glass rounded-2xl p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, ID, or phone..."
-            className="pl-10 bg-secondary/50"
-          />
+      {adjustId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="glass rounded-2xl p-6 w-full max-w-sm space-y-3">
+            <h3 className="font-heading font-bold flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> Adjust Balance</h3>
+            <Input type="number" step="0.01" value={adjustAmount} onChange={e => setAdjustAmount(e.target.value)} placeholder="Amount (use negative to deduct)" />
+            <Input value={adjustNote} onChange={e => setAdjustNote(e.target.value)} placeholder="Note (optional)" />
+            <div className="flex gap-2">
+              <Button onClick={handleAdjust} className="flex-1 gradient-primary text-primary-foreground">Apply</Button>
+              <Button variant="outline" onClick={() => setAdjustId(null)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Users Table */}
-      <div className="glass rounded-2xl p-6">
+      <div className="glass rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">User</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Balance</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Orders</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Total Spent</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Role</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Joined</th>
-                <th className="text-left pb-3 text-xs text-muted-foreground font-medium">Actions</th>
+                {["Email","Name","Balance","Orders","Role","Joined","Actions"].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-xs text-muted-foreground font-medium whitespace-nowrap">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-muted-foreground">No users found</td>
-                </tr>
-              ) : (
-                filtered.map((user) => (
-                  <tr key={user.user_id} className="border-b border-border/30 hover:bg-secondary/20">
-                    <td className="py-3">
-                      <div>
-                        <p className="font-medium text-sm">{user.display_name || "Unnamed"}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{user.user_id.slice(0, 12)}...</p>
-                      </div>
-                    </td>
-                    <td className="py-3 text-sm font-medium text-primary">${user.balance.toFixed(2)}</td>
-                    <td className="py-3 text-sm">{user.orderCount}</td>
-                    <td className="py-3 text-sm">${user.totalSpent.toFixed(2)}</td>
-                    <td className="py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        user.role === "admin"
-                          ? "bg-primary/20 text-primary"
-                          : "bg-secondary text-muted-foreground"
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="py-3 text-xs text-muted-foreground">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 flex gap-1">
-                      <Link to={`/admin/users/${user.user_id}`}>
-                        <Button variant="ghost" size="sm" className="text-xs">
-                          <Eye className="w-3 h-3 mr-1" /> View
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleAdmin(user.user_id, user.role)}
-                        className="text-xs"
-                      >
-                        {user.role === "admin" ? (
-                          <><Ban className="w-3 h-3 mr-1" /> Remove Admin</>
-                        ) : (
-                          <><Shield className="w-3 h-3 mr-1" /> Make Admin</>
-                        )}
+              {loading ? (
+                <tr><td colSpan={7} className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" /></td></tr>
+              ) : users.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">No users found</td></tr>
+              ) : users.map(u => (
+                <tr key={u.id} className={`border-b border-border/30 hover:bg-secondary/20 ${u.is_banned ? "opacity-50" : ""}`}>
+                  <td className="px-4 py-3 text-xs font-medium">{u.email}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{u.profile?.display_name ?? u.display_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs font-bold text-primary">${parseFloat(String(u.wallet?.balance ?? u.balance ?? 0)).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-xs">{u.order_count ?? 0}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${u.roles?.includes("admin") ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                      {u.roles?.includes("admin") ? "Admin" : "User"}
+                    </span>
+                    {u.is_banned && <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive">Banned</span>}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <Link to={`/admin/users/${u.id}`}><Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="View"><Eye className="w-3.5 h-3.5" /></Button></Link>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Adjust balance" onClick={() => setAdjustId(u.id)}><DollarSign className="w-3.5 h-3.5 text-primary" /></Button>
+                      <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${u.is_banned ? "text-primary" : "text-destructive"}`}
+                        title={u.is_banned ? "Unban" : "Ban"} onClick={() => handleBan(u.id, u.is_banned ?? false)}>
+                        <Ban className="w-3.5 h-3.5" />
                       </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {pages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground text-xs">Page {page} of {pages}</span>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); load(p, search); }}><ChevronLeft className="w-4 h-4" /></Button>
+            <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => { const p = page + 1; setPage(p); load(p, search); }}><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

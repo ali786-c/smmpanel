@@ -1,262 +1,140 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, MessageSquare, CheckCircle, Clock, Send, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, MessageSquare, CheckCircle, Clock, Send, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-interface TicketRow {
-  id: string;
-  subject: string;
-  category: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  order_id: string | null;
-  userName?: string;
-}
-
-interface TicketMessage {
-  id: string;
-  ticket_id: string;
-  sender: string;
-  content: string;
-  created_at: string;
-}
+const STATUS_BADGE: Record<string, string> = {
+  open: "bg-yellow-500/20 text-yellow-400",
+  pending: "bg-blue-500/20 text-blue-400",
+  closed: "bg-secondary text-muted-foreground",
+};
 
 export default function AdminTickets() {
-  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
-  const [ticketMessages, setTicketMessages] = useState<Record<string, TicketMessage[]>>({});
-  const [replyText, setReplyText] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [ticketDetail, setTicketDetail] = useState<any>(null);
+  const [reply, setReply] = useState("");
   const [replying, setReplying] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [ticketsRes, profilesRes] = await Promise.all([
-        supabase.from("tickets").select("*").order("created_at", { ascending: false }),
-        supabase.from("profiles").select("user_id, display_name"),
-      ]);
-
-      const nameMap = new Map((profilesRes.data || []).map((p: any) => [p.user_id, p.display_name]));
-      const rows = (ticketsRes.data || []).map((t: any) => ({
-        ...t,
-        userName: nameMap.get(t.user_id) || "Unknown",
-      }));
-      setTickets(rows);
-      setLoading(false);
-    };
-    fetchData();
-  }, []);
-
-  const updateStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase.from("tickets").update({ status: newStatus }).eq("id", id);
-    if (error) {
-      toast.error("Failed to update ticket");
-      return;
-    }
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t)));
-    toast.success(`Ticket marked as ${newStatus}`);
+  const load = async () => {
+    setLoading(true);
+    const params = new URLSearchParams({ per_page: "50" });
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    const res = await apiFetch(`/admin/tickets?${params}`);
+    if (res.ok) { const d = await res.json(); setTickets(d.data ?? d.tickets ?? []); }
+    setLoading(false);
   };
 
-  const loadMessages = async (ticketId: string) => {
-    if (expandedTicket === ticketId) {
-      setExpandedTicket(null);
-      return;
-    }
-    const { data } = await supabase
-      .from("ticket_messages")
-      .select("*")
-      .eq("ticket_id", ticketId)
-      .order("created_at", { ascending: true });
-    setTicketMessages((prev) => ({ ...prev, [ticketId]: (data as TicketMessage[]) || [] }));
-    setExpandedTicket(ticketId);
+  useEffect(() => { load(); }, [statusFilter]);
+
+  const expand = async (id: string) => {
+    if (expandedId === id) { setExpandedId(null); setTicketDetail(null); return; }
+    setExpandedId(id);
+    const res = await apiFetch(`/admin/tickets/${id}`);
+    if (res.ok) { const d = await res.json(); setTicketDetail(d.ticket ?? d); }
   };
 
-  const sendReply = async (ticketId: string) => {
-    if (!replyText.trim()) return;
+  const handleReply = async () => {
+    if (!expandedId || !reply.trim()) return;
     setReplying(true);
-    const { error } = await supabase.from("ticket_messages").insert({
-      ticket_id: ticketId,
-      sender: "admin",
-      content: replyText.trim(),
-    });
-    if (error) {
-      toast.error("Failed to send reply");
-      setReplying(false);
-      return;
-    }
-    const newMsg: TicketMessage = {
-      id: crypto.randomUUID(),
-      ticket_id: ticketId,
-      sender: "admin",
-      content: replyText.trim(),
-      created_at: new Date().toISOString(),
-    };
-    setTicketMessages((prev) => ({
-      ...prev,
-      [ticketId]: [...(prev[ticketId] || []), newMsg],
-    }));
-    setReplyText("");
+    const res = await apiFetch(`/admin/tickets/${expandedId}/reply`, { method: "POST", body: JSON.stringify({ message: reply }) });
+    if (res.ok) { toast.success("Reply sent"); setReply(""); expand(expandedId); load(); }
+    else toast.error("Reply failed");
     setReplying(false);
-    toast.success("Reply sent to user");
   };
 
-  const filtered = tickets.filter((t) => {
-    const q = search.toLowerCase();
-    const matchSearch = t.subject.toLowerCase().includes(q) || (t.userName?.toLowerCase() || "").includes(q);
-    const matchStatus = statusFilter === "all" || t.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const handleStatus = async (id: string, status: string) => {
+    const res = await apiFetch(`/admin/tickets/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+    if (res.ok) { toast.success(`Ticket ${status}`); load(); if (expandedId === id) { const r = await apiFetch(`/admin/tickets/${id}`); if (r.ok) setTicketDetail((await r.json()).ticket ?? null); } }
+    else toast.error("Update failed");
+  };
 
-  const openCnt = tickets.filter((t) => t.status === "open").length;
-  const closedCnt = tickets.filter((t) => t.status === "closed").length;
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this ticket?")) return;
+    const res = await apiFetch(`/admin/tickets/${id}`, { method: "DELETE" });
+    if (res.ok) { toast.success("Deleted"); if (expandedId === id) { setExpandedId(null); setTicketDetail(null); } load(); }
+    else toast.error("Delete failed");
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const filtered = statusFilter === "all" ? tickets : tickets.filter(t => t.status === statusFilter);
 
   return (
-    <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="glass rounded-2xl p-5 text-center">
-          <MessageSquare className="w-5 h-5 text-primary mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-xl font-heading font-bold">{tickets.length}</p>
-        </div>
-        <div className="glass rounded-2xl p-5 text-center">
-          <Clock className="w-5 h-5 text-warning mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Open</p>
-          <p className="text-xl font-heading font-bold text-warning">{openCnt}</p>
-        </div>
-        <div className="glass rounded-2xl p-5 text-center">
-          <CheckCircle className="w-5 h-5 text-primary mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Closed</p>
-          <p className="text-xl font-heading font-bold text-primary">{closedCnt}</p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="font-heading font-bold text-lg flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-primary" /> Support Tickets <span className="text-muted-foreground text-sm font-normal">({filtered.length})</span>
+        </h2>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          className="h-9 rounded-xl border border-border bg-background text-sm px-3 text-foreground">
+          <option value="all">All</option>
+          <option value="open">Open</option>
+          <option value="pending">Pending</option>
+          <option value="closed">Closed</option>
+        </select>
       </div>
 
-      {/* Filters */}
-      <div className="glass rounded-2xl p-4 flex flex-col sm:flex-row gap-3">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search tickets..."
-          className="bg-secondary/50 flex-1"
-        />
-        <div className="flex gap-2">
-          {["all", "open", "closed"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                statusFilter === s ? "gradient-primary text-primary-foreground" : "bg-secondary/50 text-muted-foreground"
-              }`}
-            >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tickets */}
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="glass rounded-2xl p-8 text-center text-muted-foreground">No tickets found</div>
-        ) : (
-          filtered.map((ticket) => (
-            <div key={ticket.id} className="glass rounded-2xl overflow-hidden">
-              <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <button onClick={() => loadMessages(ticket.id)} className="text-left flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs text-muted-foreground">{ticket.id.slice(0, 8)}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      ticket.status === "open" ? "bg-warning/20 text-warning" : "bg-primary/20 text-primary"
-                    }`}>{ticket.status}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{ticket.category}</span>
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="glass rounded-2xl p-12 text-center text-muted-foreground">No tickets</div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(t => (
+            <div key={t.id} className="glass rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-secondary/20" onClick={() => expand(t.id)}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm truncate">{t.subject}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[t.status] ?? "bg-secondary text-muted-foreground"}`}>{t.status}</span>
                   </div>
-                  <h3 className="font-heading font-semibold text-sm">{ticket.subject}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {ticket.userName} • {new Date(ticket.created_at).toLocaleDateString()}
-                  </p>
-                </button>
-                <div className="flex items-center gap-2">
-                  {ticket.status === "open" ? (
-                    <Button variant="ghost" size="sm" onClick={() => updateStatus(ticket.id, "closed")} className="text-xs">
-                      <CheckCircle className="w-3 h-3 mr-1" /> Close
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" size="sm" onClick={() => updateStatus(ticket.id, "open")} className="text-xs">
-                      <Clock className="w-3 h-3 mr-1" /> Reopen
-                    </Button>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t.user_email ?? t.user?.email ?? "User"} · {new Date(t.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {t.status !== "closed" && (
+                    <>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-primary" onClick={e => { e.stopPropagation(); handleStatus(t.id, "closed"); }}>
+                        <CheckCircle className="w-3.5 h-3.5 mr-1" /> Close
+                      </Button>
+                    </>
                   )}
-                  <button onClick={() => loadMessages(ticket.id)}>
-                    {expandedTicket === ticket.id ? (
-                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={e => { e.stopPropagation(); handleDelete(t.id); }}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                  {expandedId === t.id ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
               </div>
 
-              {/* Messages Thread */}
-              {expandedTicket === ticket.id && (
-                <div className="border-t border-border p-4 space-y-3">
-                  {(ticketMessages[ticket.id] || []).length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No messages yet</p>
-                  ) : (
-                    (ticketMessages[ticket.id] || []).map((msg) => (
-                      <div key={msg.id} className={`flex ${msg.sender === "admin" ? "justify-end" : "justify-start"}`}>
-                        <div
-                          className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
-                            msg.sender === "admin"
-                              ? "gradient-primary text-primary-foreground"
-                              : "bg-secondary/50"
-                          }`}
-                        >
-                          <p className="text-xs font-medium mb-1 opacity-70">
-                            {msg.sender === "admin" ? "Admin" : "User"} • {new Date(msg.created_at).toLocaleString()}
-                          </p>
-                          {msg.content}
+              {expandedId === t.id && (
+                <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+                  {ticketDetail ? (
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {(ticketDetail.messages ?? ticketDetail.replies ?? []).map((m: any, i: number) => (
+                        <div key={i} className={`rounded-xl p-3 text-sm ${m.is_admin || m.sender_role === "admin" ? "bg-primary/10 ml-6" : "bg-secondary/40 mr-6"}`}>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">{m.is_admin || m.sender_role === "admin" ? "Admin" : "User"} · {new Date(m.created_at).toLocaleString()}</p>
+                          <p>{m.message ?? m.body}</p>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))}
+                    </div>
+                  ) : <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>}
 
-                  {/* Admin Reply */}
-                  <div className="flex gap-2 mt-2">
-                    <Textarea
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Reply to user..."
-                      className="bg-secondary/50 min-h-[60px]"
-                    />
-                    <Button
-                      size="icon"
-                      onClick={() => sendReply(ticket.id)}
-                      disabled={replying || !replyText.trim()}
-                      className="gradient-primary text-primary-foreground shrink-0 self-end"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {t.status !== "closed" && (
+                    <div className="flex gap-2 mt-2">
+                      <Textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Type reply…" className="flex-1 text-sm resize-none h-20" />
+                      <Button onClick={handleReply} disabled={replying || !reply.trim()} className="gradient-primary text-primary-foreground h-20 px-4">
+                        {replying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
