@@ -6,13 +6,13 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * JustPanel.com API Service
+ * justanotherpanel.com API v2 Service
  *
- * Wraps every call to the JustPanel provider API with proper error handling,
+ * Wraps every call to the JustAnotherPanel provider API with proper error handling,
  * logging, and response normalisation so the rest of the app never has to
  * deal with raw provider responses.
  *
- * API reference: https://justpanel.com/api (standard SMM panel v2)
+ * API reference: https://justanotherpanel.com/api/v2
  */
 class JustPanelService
 {
@@ -161,7 +161,9 @@ class JustPanelService
 
     /**
      * Request cancellation of a provider order.
-     * Returns ['success' => true] or ['success' => false, 'error' => '...']
+     * API: action=cancel, orders=<id>
+     * Response: [{"order": 9, "cancel": {"error": "..."}}, {"order": 2, "cancel": 1}]
+     * cancel=1 means success, cancel={"error":"..."} means failure.
      */
     public function cancelOrder(string $providerOrderId): array
     {
@@ -170,16 +172,24 @@ class JustPanelService
             'orders' => $providerOrderId,
         ]);
 
-        // Provider returns array like [{ "order": "123", "cancel": { "1": "Canceled" } }]
         if (is_array($resp)) {
             foreach ($resp as $item) {
-                if (isset($item['cancel'])) {
-                    $result = reset($item['cancel']);
-                    if (strtolower($result) === 'canceled' || strtolower($result) === 'cancelled') {
-                        return ['success' => true];
-                    }
-                    return ['success' => false, 'error' => $result];
+                if (!is_array($item)) continue;
+                if (!isset($item['cancel'])) continue;
+
+                $cancel = $item['cancel'];
+
+                // Success: cancel = 1 (integer)
+                if ($cancel === 1 || $cancel === '1') {
+                    return ['success' => true];
                 }
+
+                // Failure: cancel = {"error": "..."}
+                if (is_array($cancel) && isset($cancel['error'])) {
+                    return ['success' => false, 'error' => $cancel['error']];
+                }
+
+                return ['success' => false, 'error' => 'Cancel failed'];
             }
         }
 
@@ -187,7 +197,65 @@ class JustPanelService
             return ['success' => false, 'error' => $resp['error']];
         }
 
-        return ['success' => true]; // assume success if no error
+        return ['success' => true];
+    }
+
+    /**
+     * Request refill for multiple provider orders.
+     * API: action=refill, orders=<id1,id2,...>
+     * Response: [{"order":1,"refill":1}, {"order":2,"refill":2}, {"order":3,"refill":{"error":"..."}}]
+     */
+    public function requestBulkRefill(array $providerOrderIds): array
+    {
+        $resp = $this->call([
+            'action' => 'refill',
+            'orders' => implode(',', $providerOrderIds),
+        ]);
+
+        $results = [];
+        if (is_array($resp)) {
+            foreach ($resp as $item) {
+                if (!is_array($item) || !isset($item['order'])) continue;
+                $orderId = (string) $item['order'];
+                $refill  = $item['refill'] ?? null;
+
+                if (is_array($refill) && isset($refill['error'])) {
+                    $results[$orderId] = ['success' => false, 'error' => $refill['error']];
+                } else {
+                    $results[$orderId] = ['success' => true, 'refill_id' => $refill];
+                }
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * Get refill status for multiple refill IDs.
+     * API: action=refill_status, refills=<id1,id2,...>
+     * Response: [{"refill":1,"status":"Completed"}, {"refill":2,"status":"Rejected"}, ...]
+     */
+    public function getMultipleRefillStatuses(array $refillIds): array
+    {
+        $resp = $this->call([
+            'action'  => 'refill_status',
+            'refills' => implode(',', $refillIds),
+        ]);
+
+        $results = [];
+        if (is_array($resp)) {
+            foreach ($resp as $item) {
+                if (!is_array($item) || !isset($item['refill'])) continue;
+                $refillId = (string) $item['refill'];
+                $status   = $item['status'] ?? null;
+
+                if (is_array($status) && isset($status['error'])) {
+                    $results[$refillId] = ['success' => false, 'error' => $status['error']];
+                } else {
+                    $results[$refillId] = ['success' => true, 'status' => $status];
+                }
+            }
+        }
+        return $results;
     }
 
     // ──────────────────────────────────────────────────────────────────────
