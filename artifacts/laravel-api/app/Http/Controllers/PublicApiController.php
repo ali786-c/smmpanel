@@ -113,34 +113,50 @@ class PublicApiController extends Controller
             return response()->json(['error' => 'Insufficient balance'], 402);
         }
 
+        $providerKey = config('services.provider.api_key');
+        $providerUrl = config('services.provider.url', 'https://justanotherpanel.com/api/v2');
+
         DB::beginTransaction();
         try {
             $wallet->decrement('balance', $cost);
 
-            $order = Order::create([
-                'id' => (string) Str::uuid(),
-                'user_id' => $userId,
-                'service_id' => $service->id,
-                'link' => $link,
+            // Submit to JAP provider first
+            $providerRes = Http::timeout(15)->post($providerUrl, [
+                'key'      => $providerKey,
+                'action'   => 'add',
+                'service'  => $service->external_service_id,
+                'link'     => $link,
                 'quantity' => $quantity,
-                'cost' => $cost,
-                'provider_cost' => round($cost * 0.7, 4),
-                'status' => 'Pending',
+            ]);
+            $providerData    = $providerRes->json();
+            $providerOrderId = $providerData['order'] ?? null;
+
+            $order = Order::create([
+                'id'                => (string) Str::uuid(),
+                'user_id'           => $userId,
+                'service_id'        => $service->id,
+                'link'              => $link,
+                'quantity'          => $quantity,
+                'cost'              => $cost,
+                'provider_cost'     => round($cost * 0.7, 4),
+                'status'            => $providerOrderId ? 'In progress' : 'Pending',
+                'external_order_id' => $providerOrderId,
             ]);
 
             WalletTransaction::create([
-                'id' => (string) Str::uuid(),
-                'user_id' => $userId,
-                'type' => 'order',
-                'amount' => -$cost,
-                'description' => "API Order #{$order->id}",
-                'reference_id' => $order->id,
-                'status' => 'completed',
+                'id'             => (string) Str::uuid(),
+                'user_id'        => $userId,
+                'type'           => 'order',
+                'amount'         => -$cost,
+                'description'    => "API Order #{$order->id}",
+                'reference_id'   => $order->id,
+                'status'         => 'completed',
                 'payment_method' => 'api',
-                'created_at' => now(),
+                'created_at'     => now(),
             ]);
 
             DB::commit();
+            // Return the internal UUID so the user can query status
             return response()->json(['order' => $order->id]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -155,10 +171,15 @@ class PublicApiController extends Controller
             return response()->json(['error' => 'Missing order ID'], 400);
         }
 
-        $order = Order::where('user_id', $userId)
-            ->where(function ($q) use ($orderId) {
-                $q->where('id', $orderId)->orWhere('external_order_id', $orderId);
-            })->first();
+        // Route by ID type to avoid PostgreSQL type cast errors (UUID column vs BIGINT column)
+        $order = null;
+        if (\Illuminate\Support\Str::isUuid($orderId)) {
+            $order = Order::where('user_id', $userId)->where('id', $orderId)->first();
+        } elseif (is_numeric($orderId)) {
+            $order = Order::where('user_id', $userId)
+                ->where('external_order_id', (int) $orderId)
+                ->first();
+        }
 
         if (!$order) {
             return response()->json(['error' => 'Order not found'], 404);
