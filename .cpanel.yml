@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/upgrnbzy/public_html/emazingsm.com
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R cpanel-deployment/* $DEPLOYPATH
