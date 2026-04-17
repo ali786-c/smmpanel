@@ -126,6 +126,7 @@ class AdminServiceController extends Controller
                     $existing->update([
                         'name' => $sanitizedName,
                         'category' => $sanitizedCategory,
+                        'platform' => $this->detectPlatform($sanitizedCategory),
                         'rate' => $rate,
                         'min_order' => (int) ($ps['min'] ?? 1),
                         'max_order' => (int) ($ps['max'] ?? 100000),
@@ -177,7 +178,11 @@ class AdminServiceController extends Controller
             $newCategory = $this->sanitizeName($service->category);
 
             if ($newName !== $service->name || $newCategory !== $service->category) {
-                $service->update(['name' => $newName, 'category' => $newCategory]);
+                $service->update([
+                    'name' => $newName, 
+                    'category' => $newCategory,
+                    'platform' => $this->detectPlatform($newCategory)
+                ]);
                 $updated++;
             }
         }
@@ -235,14 +240,18 @@ class AdminServiceController extends Controller
     private function detectPlatform(string $category): string
     {
         $category = strtolower($category);
-        if (str_contains($category, 'instagram')) return 'Instagram';
-        if (str_contains($category, 'youtube')) return 'YouTube';
-        if (str_contains($category, 'tiktok')) return 'TikTok';
-        if (str_contains($category, 'twitter') || str_contains($category, 'x.com')) return 'Twitter/X';
-        if (str_contains($category, 'facebook')) return 'Facebook';
-        if (str_contains($category, 'telegram')) return 'Telegram';
+        if (str_contains($category, 'instagram') || str_contains($category, 'ig ')) return 'Instagram';
+        if (str_contains($category, 'youtube') || str_contains($category, 'yt ')) return 'YouTube';
+        if (str_contains($category, 'tiktok') || str_contains($category, 'tt ')) return 'TikTok';
+        if (str_contains($category, 'twitter') || str_contains($category, 'x.com') || str_contains($category, ' x ')) return 'Twitter';
+        if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'meta')) return 'Facebook';
+        if (str_contains($category, 'telegram') || str_contains($category, 'tg ')) return 'Telegram';
         if (str_contains($category, 'spotify')) return 'Spotify';
         if (str_contains($category, 'linkedin')) return 'LinkedIn';
+        if (str_contains($category, 'google') || str_contains($category, 'gmb') || str_contains($category, 'reviews')) return 'Google';
+        if (str_contains($category, 'discord')) return 'Discord';
+        if (str_contains($category, 'twitch')) return 'Twitch';
+        if (str_contains($category, 'snapchat') || str_contains($category, 'snap ')) return 'Snapchat';
         return 'Other';
     }
 }
