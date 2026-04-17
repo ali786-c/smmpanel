@@ -44,7 +44,7 @@ class AdminBlogController extends Controller
 
         $words = str_word_count(strip_tags($validated['content']));
         $validated['read_time'] = max(1, (int) ceil($words / 200));
-        $validated['status'] = $validated['status'] ?? 'draft';
+        $validated['status'] = $validated['status'] ?? 'published';
 
         if ($validated['status'] === 'published') {
             $validated['published_at'] = now();

@@ -123,10 +123,16 @@ class AIBloggingService
         if (!$base64) return null;
 
         $fileName = 'blog_' . Str::slug($title) . '_' . time() . '.png';
-        $path = 'public/blog_images/' . $fileName;
+        $directory = public_path('blog_images');
         
-        Storage::put($path, base64_decode($base64));
-        return Storage::url($path);
+        if (!file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $path = $directory . '/' . $fileName;
+        file_put_contents($path, base64_decode($base64));
+
+        return '/blog_images/' . $fileName;
     }
 
     protected function updateProgress(int $percent, string $status): void
