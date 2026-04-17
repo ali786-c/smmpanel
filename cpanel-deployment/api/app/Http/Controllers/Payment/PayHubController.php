@@ -24,6 +24,18 @@ class PayHubController extends Controller
     }
 
     /**
+     * Get current exchange rate with margin for live preview.
+     */
+    public function getRate()
+    {
+        $conversion = $this->currency->convertUsdToEur(1); // Get rate for $1
+        return response()->json([
+            'rate' => $conversion['rate_used'],
+            'currency' => 'EUR'
+        ]);
+    }
+
+    /**
      * Initiate a payment session (USD -> EUR -> PayHub Redirect)
      */
     public function checkout(Request $request)

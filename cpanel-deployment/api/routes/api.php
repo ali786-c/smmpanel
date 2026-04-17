@@ -138,6 +138,7 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/crypto/confirm',      [PaymentController::class, 'cryptoConfirm']);
         Route::post('/paypal/create-order', [PaymentController::class, 'paypalCreateOrder']);
         Route::post('/paypal/capture',      [PaymentController::class, 'paypalCapture']);
+        Route::get('/payhub/rate',          [PayHubController::class, 'getRate']);
         Route::post('/payhub/checkout',     [PayHubController::class, 'checkout']);
     });
 
