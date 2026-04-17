@@ -39,7 +39,8 @@ class AIBloggingService
             $draftPrompt = "You are a world-class blog writer. Write a comprehensive article based on this strategy: " . $writingStrategy . "
             STRICT RULES:
             1. Return ONLY valid JSON.
-            2. JSON Schema:
+            2. Do NOT use markdown symbols like * or ** for bold or lists. Use plain text.
+            3. JSON Schema:
             {
               \"title\": \"Catchy SEO Title\",
               \"hook\": \"A powerful 1-sentence hook\",
@@ -56,6 +57,10 @@ class AIBloggingService
 
             $jsonRaw = $this->gemini->generateText($draftPrompt);
             $data = json_decode($this->cleanJson($jsonRaw), true);
+
+            if ($data) {
+                $data = $this->recursiveStripMarkdown($data);
+            }
 
             if (!$data || !isset($data['title'])) {
                 Log::channel('ai_automation')->error("Failed to decode JSON draft.", ['raw' => $jsonRaw]);
@@ -133,6 +138,22 @@ class AIBloggingService
         file_put_contents($path, base64_decode($base64));
 
         return '/blog_images/' . $fileName;
+    }
+
+    protected function recursiveStripMarkdown($data)
+    {
+        if (is_string($data)) {
+            // Remove **bold** and *bullet* marks
+            return str_replace(['**', '*'], '', $data);
+        }
+
+        if (is_array($data)) {
+            foreach ($data as $key => $value) {
+                $data[$key] = $this->recursiveStripMarkdown($value);
+            }
+        }
+
+        return $data;
     }
 
     protected function updateProgress(int $percent, string $status): void

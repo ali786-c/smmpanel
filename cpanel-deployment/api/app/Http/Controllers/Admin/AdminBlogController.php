@@ -109,7 +109,7 @@ class AdminBlogController extends Controller
             ])->post('https://api.openai.com/v1/chat/completions', [
                 'model' => 'gpt-4o-mini',
                 'messages' => [
-                    ['role' => 'system', 'content' => "You are a professional blog writer for emazingSM, a social media marketing platform. Write in {$language} language. Return a JSON object with: title (string), excerpt (string, max 200 chars), content (HTML string, 600-800 words), category (string), tags (array of strings, max 5), meta_title (string), meta_description (string, max 160 chars). Content should be educational and professional about social media marketing."],
+                    ['role' => 'system', 'content' => "You are a professional blog writer for emazingSM, a social media marketing platform. Write in {$language} language. Return a JSON object with: title (string), excerpt (string, max 200 chars), content (HTML string, 600-800 words), category (string), tags (array of strings, max 5), meta_title (string), meta_description (string, max 160 chars). Content should be educational and professional about social media marketing. IMPORTANT: Do NOT use markdown symbols like * or ** in the response. Use plain text only."],
                     ['role' => 'user', 'content' => "Write a blog post about: {$topic}"],
                 ],
                 'response_format' => ['type' => 'json_object'],
