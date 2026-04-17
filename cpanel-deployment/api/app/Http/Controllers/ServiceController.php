@@ -18,18 +18,23 @@ class ServiceController extends Controller
         $platform = $request->get('platform', 'All');
         $search = $request->get('search');
 
-        // Robust cache key for dynamic queries
-        $cacheKey = "services_list_p{$page}_l{$limit}_cat_" . ($category ?? 'none') . "_plat_" . ($platform ?? 'all') . "_s_" . md5($search ?? '');
+        // Log the request for debugging
+        \Illuminate\Support\Facades\Log::info("Service search request", [
+            'platform' => $platform,
+            'category' => $category,
+            'search' => $search
+        ]);
 
-        $services = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($request, $limit) {
-            $query = Service::active()->orderBy('display_order');
+        // BYPASS CACHE FOR DEBUGGING
+        $query = Service::active()->orderBy('display_order');
 
             if ($request->has('category')) {
                 $query->where('category', $request->category);
             }
             
             if ($request->filled('platform') && $request->platform !== 'All' && $request->platform !== 'Everything') {
-                $query->where('platform', $request->platform);
+                // Using whereRaw with lower for case-insensitive and safer matching
+                $query->whereRaw('LOWER(platform) = ?', [strtolower($request->platform)]);
             }
             
             if ($request->filled('search')) {
@@ -39,8 +44,7 @@ class ServiceController extends Controller
                 });
             }
 
-            return $query->paginate($limit);
-        });
+            $services = $query->paginate($limit);
 
         // Mark favorites if authenticated (Do not cache this part as it's user-specific)
         if (auth()->check()) {

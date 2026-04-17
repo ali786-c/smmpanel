@@ -149,7 +149,7 @@ class AdminServiceController extends Controller
             foreach (array_chunk($serviceData, 1000) as $chunk) {
                 Service::upsert($chunk, ['external_service_id'], [
                     'name', 'category', 'platform', 'type', 'rate', 
-                    'min_order', 'max_order', 'refill', 'cancel', 'updated_at'
+                    'min_order', 'max_order', 'refill', 'cancel', 'is_active', 'updated_at'
                 ]);
             }
 
@@ -186,13 +186,14 @@ class AdminServiceController extends Controller
                     'name' => $sanitizedName,
                     'category' => $sanitizedCategory,
                     'platform' => $platform,
+                    'is_active' => true,
                     'updated_at' => $now,
                 ];
             }
 
             foreach (array_chunk($serviceData, 1000) as $chunk) {
                 Service::upsert($chunk, ['external_service_id'], [
-                    'name', 'category', 'platform', 'updated_at'
+                    'name', 'category', 'platform', 'is_active', 'updated_at'
                 ]);
             }
 
