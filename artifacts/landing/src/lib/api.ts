@@ -1,7 +1,7 @@
 // Use the app's own base path + a proxy segment so all requests
 // stay on the same origin and pass through the Vite dev-server proxy.
 // BASE_URL = "/landing/" in dev and production.
-export const API_BASE = `${import.meta.env.BASE_URL}laravel-api`;
+export const API_BASE = `${import.meta.env.BASE_URL}api`;
 
 export function getToken(): string | null {
   return localStorage.getItem("esm_token");
