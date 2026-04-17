@@ -1,14 +1,19 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export default function MassOrder() {
+  const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [results, setResults] = useState<{ line: number; status: string; message: string }[]>([]);
+  const [results, setResults] = useState<{ line: number; status: string; message: string; isBalanceError?: boolean }[]>([]);
+
+  const hasBalanceError = results.some(r => r.isBalanceError || r.message.toLowerCase().includes("balance"));
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -34,7 +39,13 @@ export default function MassOrder() {
           newResults.push({ line: i + 1, status: "success", message: `Campaign launched for ${link}` });
         } else {
           const e = await res.json();
-          newResults.push({ line: i + 1, status: "error", message: e.error ?? e.message ?? "Failed" });
+          const isBalanceError = res.status === 402;
+          newResults.push({ 
+            line: i + 1, 
+            status: "error", 
+            message: e.error ?? e.message ?? "Failed",
+            isBalanceError 
+          });
         }
       } catch (err: any) {
         newResults.push({ line: i + 1, status: "error", message: err.message || "Failed" });
@@ -66,8 +77,26 @@ export default function MassOrder() {
       </div>
 
       {results.length > 0 && (
-        <div className="glass rounded-2xl p-6 space-y-2">
-          <h3 className="font-heading font-semibold mb-3">Results</h3>
+        <div className="glass rounded-2xl p-6 space-y-4">
+          {hasBalanceError && (
+            <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Action Required: Low Balance</AlertTitle>
+              <AlertDescription className="mt-2 flex flex-col gap-3">
+                <p>Some orders could not be placed due to insufficient funds in your wallet.</p>
+                <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="w-fit font-bold"
+                    onClick={() => navigate("/dashboard/wallet")}
+                >
+                    TOP UP WALLET NOW
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <h3 className="font-heading font-semibold">Results</h3>
           {results.map(r => (
             <div key={r.line} className={`flex items-center gap-3 text-sm p-2 rounded-lg ${r.status === "success" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
               <span className="font-mono text-xs w-8">#{r.line}</span>

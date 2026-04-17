@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -261,7 +262,21 @@ export default function NewOrder() {
                   {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />LAUNCHING...</> : <><ShoppingCart className="w-4 h-4 mr-2" />LAUNCH CAMPAIGN — ${finalCost.toFixed(4)}</>}
                 </Button>
                 {!canOrder && balance < finalCost && finalCost > 0 && (
-                  <p className="text-xs text-center text-destructive flex items-center justify-center gap-1"><AlertCircle className="w-3 h-3" /> Insufficient balance. Add funds to your wallet.</p>
+                  <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 mt-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Insufficient Balance</AlertTitle>
+                    <AlertDescription className="mt-2 flex flex-col gap-3">
+                      <p>You need an additional ${(finalCost - balance).toFixed(4)} to place this order.</p>
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        className="w-full font-bold"
+                        onClick={() => navigate("/dashboard/wallet")}
+                      >
+                        TOP UP WALLET
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
                 )}
               </div>
             )}

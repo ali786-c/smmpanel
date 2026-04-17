@@ -87,7 +87,7 @@ class OrderController extends Controller
 
         $wallet = Wallet::where('user_id', $user->id)->first();
         if (!$wallet || $wallet->balance < $cost) {
-            return response()->json(['error' => 'Insufficient balance'], 402);
+            return response()->json(['error' => 'Insufficient balance. Please add credit to your wallet to place this order.'], 402);
         }
 
         DB::beginTransaction();
@@ -253,7 +253,7 @@ class OrderController extends Controller
         }
 
         if (!$wallet || $wallet->balance < $totalCost) {
-            return response()->json(['error' => 'Insufficient balance for all orders. Required: $'.number_format($totalCost,4)], 402);
+            return response()->json(['error' => 'Insufficient balance for all orders. Please add credit to your wallet to proceed.'], 402);
         }
 
         $results = [];
