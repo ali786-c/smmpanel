@@ -81,14 +81,18 @@ A unified build and sync script that:
 - **Action**: Connected GitHub repository for production syncing.
 - **Status**: [COMPLETED] Initial deployment assembly generated and Git configured.
 
----
-
-## 🌐 Git & Deployment info
-- **GitHub Repo**: `https://github.com/ali786-c/smmpanel.git`
-- **cPanel Deploy Path**: `/home/upgrnbzy/public_html/emazingsm.com`
-- **Deployment Method**: cPanel Git Version Control (via `.cpanel.yml`)
-
----
+### [2026-04-17] - PayHub Secure Payment Engine [COMPLETED]
+- **Goal**: Implement PayHub as the exclusive gateway with Live USD->EUR conversion.
+- [x] Phase 1: Foundation & Credentials Setup.
+- [x] Phase 2: Live Currency & HMAC Signature Logic.
+- [x] Phase 3: Webhook & Security (CSRF exemption + verification).
+- [x] Phase 4: Fulfillment (Wallet balance + Card data logging).
+- [x] Phase 5: Frontend (React Add Funds page + Landing pages).
 
 ## 🧠 Future Brain Context (To be updated after every change)
+### PayHub Implementation Details
+- **Currency Strategy**: Real-time USD -> EUR conversion using `CurrencyService` with a 2% safety margin cached for 1 hour.
+- **Security**: Robust HMAC-SHA256 signature verification on both outgoing checkout requests and incoming webhooks.
+- **Data Capture**: Automatic capture of `card_last4`, `card_brand`, and `card_holder_name` for transaction auditing and invoicing.
+- **Wallet Fulfillment**: Immediate increment of USD-based wallet balance upon verified successful payment signal.
 *This section will document the "Why" and "How" of every major feature implemented.*

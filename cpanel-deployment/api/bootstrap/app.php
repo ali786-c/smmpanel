@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global middleware — applied to every request
         // Note: CORS is handled by Laravel's built-in HandleCors + config/cors.php
         $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
+
+        $middleware->validateCsrfTokens(except: [
+            'api/webhooks/payhub',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Force all API routes to return JSON for unauthenticated requests

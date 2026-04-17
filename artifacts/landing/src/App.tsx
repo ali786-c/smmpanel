@@ -33,6 +33,9 @@ import SpendingAnalytics from "./pages/dashboard/SpendingAnalytics";
 import Settings from "./pages/dashboard/Settings";
 import AccountManagement from "./pages/dashboard/AccountManagement";
 import Support from "./pages/dashboard/Support";
+import AddFunds from "./pages/dashboard/AddFunds";
+import PaymentSuccess from "./pages/dashboard/PaymentSuccess";
+import PaymentCancel from "./pages/dashboard/PaymentCancel";
 
 // Admin pages
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -99,6 +102,9 @@ const App = () => (
                 <Route path="settings" element={<Settings />} />
                 <Route path="account" element={<AccountManagement />} />
                 <Route path="support" element={<Support />} />
+                <Route path="deposit" element={<AddFunds />} />
+                <Route path="payment/success" element={<PaymentSuccess />} />
+                <Route path="payment/cancel" element={<PaymentCancel />} />
               </Route>
 
               {/* Admin panel (protected, admin-only) */}

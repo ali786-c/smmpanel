@@ -30,6 +30,7 @@ use App\Http\Controllers\PublicApiController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\Payment\PayHubController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Health Check ─────────────────────────────────
@@ -40,6 +41,9 @@ Route::post('/v2', [PublicApiController::class, 'handle']);
 
 // ─── Stripe Webhook (Public — Stripe calls this, no auth) ─────────────────
 Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook']);
+
+// ─── PayHub Webhook (Public — PayHub calls this, no auth) ─────────────────
+Route::post('/payment/payhub/webhook', [PayHubController::class, 'handleWebhook']);
 
 // ─── Landing Page (Public) ─────────────────────────
 Route::prefix('landing')->group(function () {
@@ -134,6 +138,7 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/crypto/confirm',      [PaymentController::class, 'cryptoConfirm']);
         Route::post('/paypal/create-order', [PaymentController::class, 'paypalCreateOrder']);
         Route::post('/paypal/capture',      [PaymentController::class, 'paypalCapture']);
+        Route::post('/payhub/checkout',     [PayHubController::class, 'checkout']);
     });
 
     // Tickets

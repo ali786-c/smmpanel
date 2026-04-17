@@ -22,6 +22,15 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    'payhub' => [
+        'client_id'   => env('PAYHUB_CLIENT_ID'),
+        'secret'      => env('PAYHUB_CLIENT_SECRET'),
+        'url'         => env('PAYHUB_API_URL'),
+        'currency'    => 'EUR', // Default currency for the gateway
+        'success_url' => env('FRONTEND_URL') . '/payment/success',
+        'cancel_url'  => env('FRONTEND_URL') . '/payment/cancel',
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
