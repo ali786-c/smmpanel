@@ -27,8 +27,8 @@ return [
         'secret'      => env('PAYHUB_CLIENT_SECRET'),
         'url'         => env('PAYHUB_API_URL'),
         'currency'    => 'EUR', // Default currency for the gateway
-        'success_url' => (env('FRONTEND_URL', env('APP_URL'))) . '/payment/success',
-        'cancel_url'  => (env('FRONTEND_URL', env('APP_URL'))) . '/payment/cancel',
+        'success_url' => (env('FRONTEND_URL', env('APP_URL'))) . '/dashboard/payment/success',
+        'cancel_url'  => (env('FRONTEND_URL', env('APP_URL'))) . '/dashboard/payment/cancel',
     ],
 
     'ses' => [
