@@ -180,12 +180,14 @@ class AdminServiceController extends Controller
         foreach ($services as $service) {
             $newName = $this->sanitizeName($service->name);
             $newCategory = $this->sanitizeName($service->category);
+            $newPlatform = $this->detectPlatform($newCategory);
 
-            if ($newName !== $service->name || $newCategory !== $service->category) {
+            // Always update platform, and update name/category if changed
+            if ($newName !== $service->name || $newCategory !== $service->category || $newPlatform !== $service->platform) {
                 $service->update([
                     'name' => $newName, 
                     'category' => $newCategory,
-                    'platform' => $this->detectPlatform($newCategory)
+                    'platform' => $newPlatform
                 ]);
                 $updated++;
             }
@@ -258,7 +260,7 @@ class AdminServiceController extends Controller
         if (str_contains($category, 'twitter') || str_contains($category, 'x.com') || str_contains($category, 'tw ') || str_contains($category, 'tw-') || str_contains($category, ' x ') || str_contains($category, 'x - ')) return 'Twitter';
         
         // Facebook
-        if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'fb-') || str_contains($category, 'fb[') || str_contains($category, 'meta')) return 'Facebook';
+        if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'fb-') || str_contains($category, 'fb[') || str_contains($category, 'meta') || str_contains($category, ' page ') || str_contains($category, ' video ')) return 'Facebook';
         
         // Telegram
         if (str_contains($category, 'telegram') || str_contains($category, 'tg ') || str_contains($category, 'tg-') || str_contains($category, 'tg[')) return 'Telegram';
