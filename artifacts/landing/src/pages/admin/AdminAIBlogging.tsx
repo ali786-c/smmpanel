@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-创新
 import { 
   Zap, 
   Settings, 
