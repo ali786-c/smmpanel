@@ -39,8 +39,8 @@ export default function WalletPage() {
 
   const handleDeposit = async () => {
     const numAmount = parseFloat(amount);
-    if (!numAmount || numAmount < 1) {
-       toast.error("Please enter a valid amount (minimum $1)");
+    if (!numAmount || numAmount < 0.5) {
+       toast.error("Please enter a valid amount (minimum $0.5)");
        return;
     }
 

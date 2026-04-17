@@ -40,8 +40,15 @@ class PayHubController extends Controller
      */
     public function checkout(Request $request)
     {
-        $request->validate(['amount' => 'required|numeric|min:1']);
-        $user = $request->user();
+        $request->validate(['amount' => 'required|numeric|min:0.5']);
+        
+        $user = $request->user('api'); // Explicitly use API guard
+        
+        if (!$user) {
+            Log::warning("PayHub Checkout: Unauthorized access attempt. Headers: " . json_encode($request->headers->all()));
+            return response()->json(['error' => 'Unauthorized. Please login again.'], 401);
+        }
+
         $usdAmount = (float) $request->amount;
 
         $conversion = $this->currency->convertUsdToEur($usdAmount);
