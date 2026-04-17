@@ -12,82 +12,86 @@ use Illuminate\Support\Facades\Cache;
 class AIBloggingService
 {
     protected GeminiService $gemini;
+    protected BlogRenderer $renderer;
 
-    public function __construct(GeminiService $gemini)
+    public function __construct(GeminiService $gemini, BlogRenderer $renderer)
     {
         $this->gemini = $gemini;
+        $this->renderer = $renderer;
     }
 
     /**
-     * Master method to generate a full blog post for a given keyword.
+     * The 8-Step "Nano Banana" AI Generation Engine.
      */
     public function generateFullBlog(BlogKeyword $keyword): ?BlogPost
     {
-        Log::channel('ai_automation')->info(">>> Starting AI Blog Generation for keyword: [{$keyword->keyword}]");
-        $this->updateProgress(10, "Defining content strategy...");
+        Log::channel('ai_automation')->info(">>> Starting NANO-BANANA Engine for: [{$keyword->keyword}]");
+        $this->updateProgress(10, "Step 1/8: Content Strategy & Planning...");
 
         try {
-            // 1. Step: Mapping Strategy
-            Log::channel('ai_automation')->debug("Step 1: Requesting SEO Strategy from Gemini...");
-            $strategyPrompt = "Create an SEO strategy for a blog post about '{$keyword->keyword}'. Identify target audience, pain points, and 3 key angles. Respond in JSON.";
-            $strategyRaw = $this->gemini->generateText($strategyPrompt);
-            $strategy = json_decode($strategyRaw, true);
+            // 1. Content Strategy
+            $strategyPrompt = "You are an expert content strategist. Create a detailed writing strategy for a blog post about: '{$keyword->keyword}'. Target Audience: Premium consumers. Return only the strategy outline.";
+            $writingStrategy = $this->gemini->generateText($strategyPrompt);
 
-            Log::channel('ai_automation')->debug("Strategy Generated.", ['strategy_preview' => substr($strategyRaw, 0, 200)]);
+            $this->updateProgress(30, "Step 2/8: Drafting Structured Content (JSON)...");
 
-            $this->updateProgress(30, "Drafting content sections (JSON)...");
+            // 2. Content Drafting (JSON)
+            $draftPrompt = "You are a world-class blog writer. Write a comprehensive article based on this strategy: " . $writingStrategy . "
+            STRICT RULES:
+            1. Return ONLY valid JSON.
+            2. JSON Schema:
+            {
+              \"title\": \"Catchy SEO Title\",
+              \"hook\": \"A powerful 1-sentence hook\",
+              \"intro\": \"A professional 2-paragraph introduction\",
+              \"takeaways\": [\"Insight 1\", \"Insight 2\", \"Insight 3\"],
+              \"sections\": [
+                { \"heading\": \"H2 Heading\", \"body\": \"Detailed content...\" }
+              ],
+              \"faqs\": [
+                { \"q\": \"Question?\", \"a\": \"Answer...\" }
+              ],
+              \"cta_text\": \"Engagement closing\"
+            }";
 
-            // 2. Step: Structured Content Drafting
-            Log::channel('ai_automation')->debug("Step 2: Drafting comprehensive content...");
-            $draftPrompt = "Write a comprehensive blog post for '{$keyword->keyword}' based on this strategy: " . json_encode($strategy) . ". 
-            Format as JSON with keys: title, slug, hook, intro, sections (array of {heading, body}), takeaways (array), faqs (array of {q, a}), meta_title, meta_description, cta_text.";
-            
-            $draftJson = $this->gemini->generateText($draftPrompt);
-            $draft = json_decode($draftJson, true);
+            $jsonRaw = $this->gemini->generateText($draftPrompt);
+            $data = json_decode($this->cleanJson($jsonRaw), true);
 
-            if (!$draft || !isset($draft['title'])) {
-                Log::channel('ai_automation')->error("JSON Parse Error or Empty Draft.", ['raw_response' => $draftJson]);
-                throw new \Exception("Failed to generate a valid JSON draft.");
+            if (!$data || !isset($data['title'])) {
+                Log::channel('ai_automation')->error("Failed to decode JSON draft.", ['raw' => $jsonRaw]);
+                throw new \Exception("AI failed to generate valid structured data.");
             }
 
-            Log::channel('ai_automation')->info("Content Drafted: {$draft['title']}");
+            $this->updateProgress(50, "Step 4/8: Visual Strategy & Image Gen...");
 
-            $this->updateProgress(50, "Generating premium featured image...");
+            // 4. Image Generation
+            $imagePrompt = "A premium, minimalist, modern 16:9 featured image for a blog post titled: '{$data['title']}'. Style: High-quality professional photography/3D.";
+            $base64 = $this->gemini->generateImage($imagePrompt);
+            $imageUrl = $this->storeImage($base64, $data['title']);
 
-            // 3. Step: Visual Engine (Image Gen)
-            Log::channel('ai_automation')->debug("Step 3: Requesting AI Image Generation...");
-            $imagePrompt = "A premium, high-quality, professional 16:9 featured image for a blog post titled: '{$draft['title']}'. Style: Minimalistic, Corporate, Modern.";
-            $base64Image = $this->gemini->generateImage($imagePrompt);
-            
-            if (!$base64Image) {
-                Log::channel('ai_automation')->warning("Image generation returned empty. Using placeholder fallback.");
-            }
+            $this->updateProgress(70, "Step 6/8: SEO Mastery & Meta Extraction...");
 
-            $imageUrl = $this->storeImage($base64Image, $draft['slug']);
-            Log::channel('ai_automation')->info("Image Stored: {$imageUrl}");
+            // 6. SEO Extraction
+            $metaPrompt = "Create a 150-char SEO meta description for this title: {$data['title']}";
+            $metaDesc = $this->gemini->generateText($metaPrompt);
 
-            $this->updateProgress(70, "Rendering premium magazine UI...");
+            $this->updateProgress(90, "Step 7/8: Rendering & Saving to DB...");
 
-            // 4. Step: Programmatic Rendering
-            Log::channel('ai_automation')->debug("Step 4: Rendering HTML content via BlogRenderer...");
-            $renderer = app(BlogRenderer::class);
-            $htmlContent = $renderer->render($draft, $imageUrl);
+            // 7. Rendering
+            $htmlContent = $this->renderer->render($data, $imageUrl);
 
-            $this->updateProgress(90, "Saving to database...");
-
-            // 5. Step: Database persistence
-            Log::channel('ai_automation')->debug("Step 5: Persisting to database...");
+            // 8. Persistence (Step 8)
             $post = BlogPost::create([
                 'id' => (string) Str::uuid(),
-                'title' => $draft['title'],
-                'slug' => $draft['slug'] . '-' . rand(100, 999),
+                'title' => $data['title'],
+                'slug' => Str::slug($data['title']) . '-' . rand(100, 999),
                 'content' => $htmlContent,
-                'excerpt' => $draft['hook'] ?? substr($draft['intro'] ?? '', 0, 160),
+                'excerpt' => $data['hook'] ?? substr($data['intro'] ?? '', 0, 160),
                 'category' => 'AI Insights',
                 'tags' => ['automation', 'ai-generated', $keyword->keyword],
                 'status' => 'published',
-                'meta_title' => $draft['meta_title'] ?? $draft['title'],
-                'meta_description' => $draft['meta_description'] ?? '',
+                'meta_title' => $data['title'],
+                'meta_description' => $metaDesc,
                 'read_time' => ceil(str_word_count(strip_tags($htmlContent)) / 200),
                 'published_at' => now(),
                 'featured_image' => $imageUrl,
@@ -95,36 +99,37 @@ class AIBloggingService
                 'keyword_id' => $keyword->id,
             ]);
 
-            // Mark keyword as used
             $keyword->update(['last_used_at' => now()]);
-
-            Log::channel('ai_automation')->info("SUCCESS: Blog Post created with ID: {$post->id}");
+            
+            Log::channel('ai_automation')->info("SUCCESS: Nano-Banana Generation Complete. Post ID: {$post->id}");
             $this->updateProgress(100, "Publication Complete!");
+
             return $post;
 
         } catch (\Exception $e) {
-            Log::channel('ai_automation')->critical("AIBloggingService CRASH: " . $e->getMessage(), [
-                'exception' => $e,
-                'keyword' => $keyword->keyword
-            ]);
+            Log::channel('ai_automation')->critical("Nano-Banana ENGINE CRASH: " . $e->getMessage());
             $this->updateProgress(0, "Error: " . $e->getMessage());
             return null;
         }
     }
 
-    private function storeImage(?string $base64, string $slug): ?string
+    protected function cleanJson(string $json): string
+    {
+        return preg_replace('/```json|```/', '', $json);
+    }
+
+    protected function storeImage(?string $base64, string $title): ?string
     {
         if (!$base64) return null;
 
-        $fileName = 'blog_' . $slug . '_' . time() . '.png';
+        $fileName = 'blog_' . Str::slug($title) . '_' . time() . '.png';
         $path = 'public/blog_images/' . $fileName;
         
         Storage::put($path, base64_decode($base64));
-        Log::channel('ai_automation')->debug("File written to storage: {$path}");
         return Storage::url($path);
     }
 
-    private function updateProgress(int $percent, string $status): void
+    protected function updateProgress(int $percent, string $status): void
     {
         Cache::put('ai_blog_progress', ['percent' => $percent, 'status' => $status], 3600);
     }

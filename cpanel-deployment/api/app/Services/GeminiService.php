@@ -19,7 +19,7 @@ class GeminiService
     /**
      * Generate content using Gemini text models.
      */
-    public function generateText(string $prompt, string $model = 'gemini-1.5-flash'): string
+    public function generateText(string $prompt, string $model = 'gemini-1.5-flash-latest'): string
     {
         try {
             $response = Http::withOptions(['verify' => false])
@@ -53,7 +53,7 @@ class GeminiService
      * Generate images using Gemini multimodal or specific image models.
      * Note: gemini-3.1-flash-image-preview usually returns base64.
      */
-    public function generateImage(string $prompt, string $model = 'gemini-1.5-flash'): ?string
+    public function generateImage(string $prompt, string $model = 'gemini-3.1-flash-image-preview'): ?string
     {
         try {
             $response = Http::withOptions(['verify' => false])
