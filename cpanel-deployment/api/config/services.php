@@ -48,4 +48,8 @@ return [
         'secret_key' => env('TURNSTILE_SECRET_KEY', ''),
     ],
 
+    'gemini' => [
+        'key' => env('GOOGLE_GEMINI_API_KEY', ''),
+    ],
+
 ];

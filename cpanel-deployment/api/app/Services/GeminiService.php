@@ -33,13 +33,18 @@ class GeminiService
                 ]);
 
             if ($response->failed()) {
-                Log::error('Gemini API Error (Text): ' . $response->body());
+                Log::channel('ai_automation')->error('Gemini API Error (Text): Status ' . $response->status() . ' - ' . $response->body());
                 return '';
             }
 
-            return $response->json('candidates.0.content.parts.0.text', '');
+            $text = $response->json('candidates.0.content.parts.0.text', '');
+            if (empty($text)) {
+                Log::channel('ai_automation')->warning('Gemini API returned empty text. Raw Body: ' . $response->body());
+            }
+
+            return $text;
         } catch (\Exception $e) {
-            Log::error('Gemini Service Exception (Text): ' . $e->getMessage());
+            Log::channel('ai_automation')->error('Gemini Service Exception (Text): ' . $e->getMessage());
             return '';
         }
     }
