@@ -43,7 +43,9 @@ Route::post('/v2', [PublicApiController::class, 'handle']);
 Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook']);
 
 // ─── PayHub Webhook (Public — PayHub calls this, no auth) ─────────────────
-Route::post('/payment/payhub/webhook', [PayHubController::class, 'handleWebhook']);
+Route::post('/webhooks/payhub', [PayHubController::class, 'handleWebhook']);
+Route::post('/payment/payhub/webhook', [PayHubController::class, 'handleWebhook']); // Keep alias for safety
+
 
 // ─── Landing Page (Public) ─────────────────────────
 Route::prefix('landing')->group(function () {
