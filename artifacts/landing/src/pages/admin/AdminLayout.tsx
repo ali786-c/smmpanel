@@ -28,6 +28,7 @@ const adminNavItems = [
   { icon: TrendingUp,       label: "Revenue",        path: "/admin/revenue" },
   { icon: Wifi,             label: "Provider Sync",  path: "/admin/provider" },
   { icon: FileText,         label: "Blog",           path: "/admin/blog" },
+  { icon: Zap,              label: "AI Automation",  path: "/admin/ai-blogging" },
   { icon: Megaphone,        label: "Announcements",  path: "/admin/announcements" },
   { icon: Megaphone,        label: "Mass Notify",    path: "/admin/mass-notify" },
   { icon: Users,            label: "Affiliates",     path: "/admin/affiliates" },

@@ -56,6 +56,7 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminActivityLog from "./pages/admin/AdminActivityLog";
 import AdminGrowth from "./pages/admin/AdminGrowth";
 import AdminSystemSettings from "./pages/admin/AdminSystemSettings";
+import AdminAIBlogging from "./pages/admin/AdminAIBlogging";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +122,7 @@ const App = () => (
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="activity" element={<AdminActivityLog />} />
                 <Route path="growth" element={<AdminGrowth />} />
+                <Route path="ai-blogging" element={<AdminAIBlogging />} />
                 <Route path="settings" element={<AdminSystemSettings />} />
                 <Route path="payments" element={<AdminFinance />} />
               </Route>
