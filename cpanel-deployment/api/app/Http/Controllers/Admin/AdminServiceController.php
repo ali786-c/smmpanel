@@ -240,18 +240,33 @@ class AdminServiceController extends Controller
     private function detectPlatform(string $category): string
     {
         $category = strtolower($category);
-        if (str_contains($category, 'instagram') || str_contains($category, 'ig ')) return 'Instagram';
-        if (str_contains($category, 'youtube') || str_contains($category, 'yt ')) return 'YouTube';
-        if (str_contains($category, 'tiktok') || str_contains($category, 'tt ')) return 'TikTok';
-        if (str_contains($category, 'twitter') || str_contains($category, 'x.com') || str_contains($category, ' x ')) return 'Twitter';
-        if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'meta')) return 'Facebook';
-        if (str_contains($category, 'telegram') || str_contains($category, 'tg ')) return 'Telegram';
+        
+        // Instagram
+        if (str_contains($category, 'instagram') || str_contains($category, 'ig ') || str_contains($category, 'ig-') || str_contains($category, 'ig[')) return 'Instagram';
+        
+        // YouTube
+        if (str_contains($category, 'youtube') || str_contains($category, 'yt ') || str_contains($category, 'yt-') || str_contains($category, 'yt[')) return 'YouTube';
+        
+        // TikTok
+        if (str_contains($category, 'tiktok') || str_contains($category, 'tt ') || str_contains($category, 'tt-') || str_contains($category, 'tt[')) return 'TikTok';
+        
+        // Twitter/X
+        if (str_contains($category, 'twitter') || str_contains($category, 'x.com') || str_contains($category, 'tw ') || str_contains($category, 'tw-') || str_contains($category, ' x ')) return 'Twitter';
+        
+        // Facebook
+        if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'fb-') || str_contains($category, 'fb[') || str_contains($category, 'meta')) return 'Facebook';
+        
+        // Telegram
+        if (str_contains($category, 'telegram') || str_contains($category, 'tg ') || str_contains($category, 'tg-') || str_contains($category, 'tg[')) return 'Telegram';
+        
+        // Others
         if (str_contains($category, 'spotify')) return 'Spotify';
-        if (str_contains($category, 'linkedin')) return 'LinkedIn';
+        if (str_contains($category, 'linkedin') || str_contains($category, 'li-')) return 'LinkedIn';
         if (str_contains($category, 'google') || str_contains($category, 'gmb') || str_contains($category, 'reviews')) return 'Google';
         if (str_contains($category, 'discord')) return 'Discord';
         if (str_contains($category, 'twitch')) return 'Twitch';
-        if (str_contains($category, 'snapchat') || str_contains($category, 'snap ')) return 'Snapchat';
+        if (str_contains($category, 'snapchat') || str_contains($category, 'snap ') || str_contains($category, 'snap-')) return 'Snapchat';
+        
         return 'Other';
     }
 }

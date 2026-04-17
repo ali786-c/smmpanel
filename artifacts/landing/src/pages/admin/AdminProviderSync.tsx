@@ -12,18 +12,22 @@ export default function AdminProviderSync() {
 
   const fetchInfo = async () => {
     setLoading(true);
-    const res = await apiFetch("/admin/services?per_page=500");
+    const res = await apiFetch("/admin/overview");
     if (res.ok) {
       const d = await res.json();
-      const services = d.data ?? d.services ?? [];
+      const stats = d.stats;
+      
       const platforms: Record<string, { count: number }> = {};
-      services.forEach((s: any) => {
-        platforms[s.platform] = { count: (platforms[s.platform]?.count ?? 0) + 1 };
-      });
+      if (stats.platform_breakdown) {
+        Object.entries(stats.platform_breakdown).forEach(([p, count]) => {
+          platforms[p] = { count: Number(count) };
+        });
+      }
+
       setInfo({
-        total: services.length,
-        active: services.filter((s: any) => s.is_active).length,
-        inactive: services.filter((s: any) => !s.is_active).length,
+        total: stats.total_services,
+        active: stats.active_services,
+        inactive: stats.total_services - stats.active_services,
         platforms,
       });
     }
