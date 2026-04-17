@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. Route API requests to Laravel's public entry point
+    # We use QSA to append query strings and ensure the path is handled correctly.
+    RewriteCond %{REQUEST_URI} ^/api/
+    RewriteRule ^api/(.*)$ api/public/index.php [L,QSA]
+
+    # 2. Serve static files if they exist in the root
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # 3. Route everything else to React index.html for CSR (Client Side Routing)
+    RewriteRule ^ index.html [L]
+</IfModule>
