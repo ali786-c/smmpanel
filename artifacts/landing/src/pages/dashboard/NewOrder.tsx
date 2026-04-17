@@ -38,7 +38,9 @@ export default function NewOrder() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [services, setServices] = useState<Service[]>([]);
+  const [servicesCache, setServicesCache] = useState<Record<string, Service[]>>({});
   const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [balance, setBalance] = useState(0);
 
@@ -60,18 +62,84 @@ export default function NewOrder() {
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
+  // Function to fetch services for a specific platform
+  const fetchServices = async (platform: string, isInitial = false) => {
+    if (servicesCache[platform] && !isInitial) {
+      setServices(servicesCache[platform]);
+      return;
+    }
+
+    setFetching(true);
+    try {
+      const url = platform === "Everything" 
+        ? "/services?per_page=100" 
+        : `/services?platform=${encodeURIComponent(platform)}&per_page=100`;
+      
+      const res = await apiFetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const list = data?.data ?? data?.services ?? data ?? [];
+        const svcs: Service[] = Array.isArray(list) ? list : [];
+        
+        setServices(svcs);
+        setServicesCache(prev => ({ ...prev, [platform]: svcs }));
+        
+        // Update favorites set if it's the first load or we find new favorites
+        const favIds = svcs.filter(s => s.is_favorite).map(s => s.id);
+        if (favIds.length > 0) {
+          setFavorites(prev => new Set([...Array.from(prev), ...favIds]));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch services:", err);
+      toast.error("Failed to load services for " + platform);
+    } finally {
+      setFetching(false);
+    }
+  };
+
   useEffect(() => {
-    Promise.all([
-      apiFetch("/services?per_page=500").then(r => r.ok ? r.json() : null),
-      apiFetch("/wallet").then(r => r.ok ? r.json() : null),
-    ]).then(([svcData, walletData]) => {
-      const list = svcData?.data ?? svcData?.services ?? svcData ?? [];
-      const svcs: Service[] = Array.isArray(list) ? list : [];
-      setServices(svcs);
-      setFavorites(new Set(svcs.filter(s => s.is_favorite).map(s => s.id)));
-      setBalance(parseFloat(walletData?.balance ?? walletData?.wallet?.balance ?? 0));
-    }).finally(() => setLoading(false));
+    const init = async () => {
+      setLoading(true);
+      try {
+        // 1. Fetch Wallet Balance
+        const walletRes = await apiFetch("/wallet");
+        if (walletRes.ok) {
+          const walletData = await walletRes.json();
+          setBalance(parseFloat(walletData?.balance ?? walletData?.wallet?.balance ?? 0));
+        }
+
+        // 2. Fetch Favorites (so the favorites tab works)
+        const favRes = await apiFetch("/services/favorites");
+        if (favRes.ok) {
+          const favData = await favRes.json();
+          const favList = Array.isArray(favData) ? favData : (favData?.data ?? []);
+          setFavorites(new Set(favList.map((s: any) => s.id)));
+        }
+
+        // 3. Fetch default services (Instagram)
+        const defaultPlatform = "Instagram";
+        setSelectedPlatform(defaultPlatform);
+        await fetchServices(defaultPlatform, true);
+
+      } catch (err) {
+        console.error("Initialization failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
   }, []);
+
+  const handlePlatformClick = (p: string) => {
+    if (selectedPlatform === p) return;
+    setSelectedPlatform(p);
+    setSelectedCategory("");
+    setSelectedServiceId("");
+    fetchServices(p);
+  };
+
 
   const selectedService = useMemo(() => services.find(s => s.id === selectedServiceId) ?? null, [services, selectedServiceId]);
   const qty = parseInt(quantity) || 0;
@@ -155,7 +223,7 @@ export default function NewOrder() {
             const Icon = p === "Everything" ? List : (platformIcons[p] || Globe);
             const isActive = selectedPlatform === p;
             return (
-              <button key={p} onClick={() => { setSelectedPlatform(isActive ? null : p); setSelectedCategory(""); setSelectedServiceId(""); }}
+              <button key={p} onClick={() => handlePlatformClick(p)}
                 className={`flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs transition-all ${isActive ? "gradient-primary text-primary-foreground font-semibold" : "glass hover:bg-secondary/50 text-muted-foreground hover:text-foreground"}`}>
                 <Icon className="w-4 h-4" />
                 <span className="truncate w-full text-center">{p}</span>
@@ -193,7 +261,12 @@ export default function NewOrder() {
                 </div>
               )}
               <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
-                {filteredServices.length === 0 ? (
+                {fetching ? (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                    <Loader2 className="w-5 h-5 animate-spin mb-2" />
+                    <p className="text-[10px] uppercase tracking-widest font-bold">Syncing {selectedPlatform} Services...</p>
+                  </div>
+                ) : filteredServices.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">No services found. Select a platform or clear search.</p>
                 ) : filteredServices.map(svc => (
                   <button key={svc.id} onClick={() => setSelectedServiceId(svc.id)}

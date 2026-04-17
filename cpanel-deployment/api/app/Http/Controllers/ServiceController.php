@@ -11,23 +11,26 @@ class ServiceController extends Controller
 {
     public function index(Request $request)
     {
-        $page = $request->get('page', 1);
-        $limit = $request->get('limit', 50);
+        $page = (int) $request->get('page', 1);
+        $limit = (int) $request->get('per_page', $request->get('limit', 50));
         $category = $request->get('category');
         $platform = $request->get('platform', 'All');
         $search = $request->get('search');
 
-        $cacheKey = "services_list_p{$page}_l{$limit}_c{$category}_pl{$platform}_s" . md5($search);
+        // Robust cache key for dynamic queries
+        $cacheKey = "services_list_p{$page}_l{$limit}_cat_" . ($category ?? 'none') . "_plat_" . ($platform ?? 'all') . "_s_" . md5($search ?? '');
 
-        $services = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($request) {
+        $services = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($request, $limit) {
             $query = Service::active()->orderBy('display_order');
 
             if ($request->has('category')) {
                 $query->where('category', $request->category);
             }
-            if ($request->filled('platform') && $request->platform !== 'All') {
+            
+            if ($request->filled('platform') && $request->platform !== 'All' && $request->platform !== 'Everything') {
                 $query->where('platform', $request->platform);
             }
+            
             if ($request->filled('search')) {
                 $query->where(function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->search . '%')
@@ -35,7 +38,7 @@ class ServiceController extends Controller
                 });
             }
 
-            return $query->paginate($request->get('limit', 50));
+            return $query->paginate($limit);
         });
 
         // Mark favorites if authenticated (Do not cache this part as it's user-specific)
