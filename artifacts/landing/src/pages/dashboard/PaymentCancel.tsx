@@ -20,7 +20,7 @@ export default function PaymentCancel() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10 pt-8">
-        <Button onClick={() => navigate("/dashboard/deposit")} className="gradient-primary py-6 px-10 rounded-2xl flex items-center gap-2">
+        <Button onClick={() => navigate("/dashboard/wallet")} className="gradient-primary py-6 px-10 rounded-2xl flex items-center gap-2">
           <RefreshCcw className="w-5 h-5" />
           Try Again
         </Button>
