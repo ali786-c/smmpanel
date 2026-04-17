@@ -12,7 +12,8 @@ class ServiceController extends Controller
     public function index(Request $request)
     {
         $page = (int) $request->get('page', 1);
-        $limit = (int) $request->get('per_page', $request->get('limit', 50));
+        $defaultLimit = $request->has('platform') ? 500 : 50;
+        $limit = (int) $request->get('per_page', $request->get('limit', $defaultLimit));
         $category = $request->get('category');
         $platform = $request->get('platform', 'All');
         $search = $request->get('search');

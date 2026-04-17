@@ -98,64 +98,59 @@ class AdminServiceController extends Controller
         }
 
         try {
-            // Increase limits for processing large service lists (5,600+ items)
-            set_time_limit(0);
-            ini_set('memory_limit', '512M');
-
+            set_time_limit(300); // 5 minutes just to be safe for 3MB download
+            
             $response = Http::timeout(120)->post($providerUrl, [
                 'key' => $providerKey,
                 'action' => 'services',
             ]);
 
+            if (!$response->ok()) {
+                return response()->json(['success' => false, 'message' => 'Provider API error.']);
+            }
+
             $providerServices = $response->json();
             if (!is_array($providerServices)) {
-                return response()->json(['error' => 'Invalid provider response'], 502);
+                return response()->json(['success' => false, 'message' => 'Invalid response from provider.']);
             }
 
             $markupPercent = (float) ($request->input('markup_percent', 30));
-            $created = 0;
-            $updated = 0;
+            $serviceData = [];
+            $now = now();
 
             foreach ($providerServices as $ps) {
                 $externalId = (int) ($ps['service'] ?? $ps['id'] ?? 0);
                 if (!$externalId) continue;
 
                 $rate = round(((float) ($ps['rate'] ?? 0)) * (1 + $markupPercent / 100), 4);
-                $sanitizedName = $this->sanitizeName($ps['name'] ?? '');
+                $sanitizedName = $this->sanitizeName($ps['name'] ?? 'Unnamed Service');
                 $sanitizedCategory = $this->sanitizeName($ps['category'] ?? 'Other');
+                $platform = $this->detectPlatform($sanitizedCategory);
 
-                $existing = Service::where('external_service_id', $externalId)->first();
+                $serviceData[] = [
+                    'id' => (string) Str::uuid(), 
+                    'external_service_id' => $externalId,
+                    'name' => $sanitizedName,
+                    'category' => $sanitizedCategory,
+                    'platform' => $platform,
+                    'type' => $ps['type'] ?? 'Default',
+                    'rate' => $rate,
+                    'min_order' => (int) ($ps['min'] ?? 1),
+                    'max_order' => (int) ($ps['max'] ?? 100000),
+                    'refill' => (bool) ($ps['refill'] ?? false),
+                    'cancel' => (bool) ($ps['cancel'] ?? false),
+                    'is_active' => true,
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ];
+            }
 
-                if ($existing) {
-                    $existing->update([
-                        'name' => $sanitizedName,
-                        'category' => $sanitizedCategory,
-                        'platform' => $this->detectPlatform($sanitizedCategory),
-                        'rate' => $rate,
-                        'min_order' => (int) ($ps['min'] ?? 1),
-                        'max_order' => (int) ($ps['max'] ?? 100000),
-                        'type' => $ps['type'] ?? 'Default',
-                        'refill' => (bool) ($ps['refill'] ?? false),
-                        'cancel' => (bool) ($ps['cancel'] ?? false),
-                        'is_active' => true,
-                    ]);
-                    $updated++;
-                } else {
-                    Service::create([
-                        'external_service_id' => $externalId,
-                        'name' => $sanitizedName,
-                        'category' => $sanitizedCategory,
-                        'platform' => $this->detectPlatform($sanitizedCategory),
-                        'type' => $ps['type'] ?? 'Default',
-                        'rate' => $rate,
-                        'min_order' => (int) ($ps['min'] ?? 1),
-                        'max_order' => (int) ($ps['max'] ?? 100000),
-                        'refill' => (bool) ($ps['refill'] ?? false),
-                        'cancel' => (bool) ($ps['cancel'] ?? false),
-                        'is_active' => true,
-                    ]);
-                    $created++;
-                }
+            // Perform Bulk UPSERT (High Performance)
+            foreach (array_chunk($serviceData, 1000) as $chunk) {
+                Service::upsert($chunk, ['external_service_id'], [
+                    'name', 'category', 'platform', 'type', 'rate', 
+                    'min_order', 'max_order', 'refill', 'cancel', 'updated_at'
+                ]);
             }
 
             // Clear services cache after sync
@@ -163,37 +158,49 @@ class AdminServiceController extends Controller
 
             return response()->json([
                 'success' => true,
-                'total' => count($providerServices),
-                'created' => $created,
-                'updated' => $updated,
+                'message' => 'Synced ' . count($serviceData) . ' services successfully.',
+                'total' => count($serviceData)
             ]);
+
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Sync failed: ' . $e->getMessage()], 500);
+            \Log::error('Sync Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
     public function resanitizeServices()
     {
-        $services = Service::all();
-        $updated = 0;
+        try {
+            $services = Service::all();
+            $serviceData = [];
+            $now = now();
 
-        foreach ($services as $service) {
-            $newName = $this->sanitizeName($service->name);
-            $newCategory = $this->sanitizeName($service->category);
-            $newPlatform = $this->detectPlatform($newCategory);
+            foreach ($services as $service) {
+                $sanitizedCategory = $this->sanitizeName($service->category);
+                $sanitizedName = $this->sanitizeName($service->name);
+                $platform = $this->detectPlatform($sanitizedCategory);
 
-            // Always update platform, and update name/category if changed
-            if ($newName !== $service->name || $newCategory !== $service->category || $newPlatform !== $service->platform) {
-                $service->update([
-                    'name' => $newName, 
-                    'category' => $newCategory,
-                    'platform' => $newPlatform
-                ]);
-                $updated++;
+                $serviceData[] = [
+                    'id' => $service->id,
+                    'external_service_id' => $service->external_service_id,
+                    'name' => $sanitizedName,
+                    'category' => $sanitizedCategory,
+                    'platform' => $platform,
+                    'updated_at' => $now,
+                ];
             }
-        }
 
-        return response()->json(['success' => true, 'total' => $services->count(), 'updated' => $updated]);
+            foreach (array_chunk($serviceData, 1000) as $chunk) {
+                Service::upsert($chunk, ['external_service_id'], [
+                    'name', 'category', 'platform', 'updated_at'
+                ]);
+            }
+
+            \Illuminate\Support\Facades\Cache::flush();
+            return response()->json(['success' => true, 'total' => $services->count(), 'updated' => count($serviceData)]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     public function updateMarkup(Request $request)
@@ -256,11 +263,11 @@ class AdminServiceController extends Controller
         // TikTok
         if (str_contains($category, 'tiktok') || str_contains($category, 'tt ') || str_contains($category, 'tt-') || str_contains($category, 'tt[')) return 'TikTok';
         
-        // Twitter/X
+        // Twitter/X (Explicit handling for "X - Twitter")
         if (str_contains($category, 'twitter') || str_contains($category, 'x.com') || str_contains($category, 'tw ') || str_contains($category, 'tw-') || str_contains($category, ' x ') || str_contains($category, 'x - ')) return 'Twitter';
         
-        // Facebook
-        if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'fb-') || str_contains($category, 'fb[') || str_contains($category, 'meta') || str_contains($category, ' page ') || str_contains($category, ' video ')) return 'Facebook';
+        // Facebook (Handing flag icons and common prefixes)
+        if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'fb-') || str_contains($category, 'fb[') || str_contains($category, 'meta') || str_contains($category, '≡ƒç') || str_contains($category, ' page ') || str_contains($category, ' video ')) return 'Facebook';
         
         // Telegram
         if (str_contains($category, 'telegram') || str_contains($category, 'tg ') || str_contains($category, 'tg-') || str_contains($category, 'tg[')) return 'Telegram';

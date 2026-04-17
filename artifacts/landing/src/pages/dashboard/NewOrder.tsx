@@ -72,8 +72,8 @@ export default function NewOrder() {
     setFetching(true);
     try {
       const url = platform === "Everything" 
-        ? "/services?per_page=100" 
-        : `/services?platform=${encodeURIComponent(platform)}&per_page=100`;
+        ? "/services?per_page=500" 
+        : `/services?platform=${encodeURIComponent(platform)}&per_page=500`;
       
       const res = await apiFetch(url);
       if (res.ok) {
