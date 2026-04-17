@@ -45,6 +45,10 @@ class AdminServiceController extends Controller
         ]);
 
         $service = Service::create(array_merge($validated, ['id' => (string) Str::uuid()]));
+        
+        // Clear services cache
+        \Illuminate\Support\Facades\Cache::flush();
+
         return response()->json($service, 201);
     }
 
@@ -67,12 +71,20 @@ class AdminServiceController extends Controller
         ]);
 
         $service->update(array_filter($validated, fn($v) => $v !== null));
+
+        // Clear services cache
+        \Illuminate\Support\Facades\Cache::flush();
+
         return response()->json($service);
     }
 
     public function destroy($id)
     {
         Service::findOrFail($id)->delete();
+
+        // Clear services cache
+        \Illuminate\Support\Facades\Cache::flush();
+
         return response()->json(['message' => 'Service deleted']);
     }
 
@@ -140,6 +152,9 @@ class AdminServiceController extends Controller
                     $created++;
                 }
             }
+
+            // Clear services cache after sync
+            \Illuminate\Support\Facades\Cache::flush();
 
             return response()->json([
                 'success' => true,

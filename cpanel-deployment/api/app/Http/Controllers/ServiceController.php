@@ -11,28 +11,44 @@ class ServiceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Service::active()->orderBy('display_order');
+        $page = $request->get('page', 1);
+        $limit = $request->get('limit', 50);
+        $category = $request->get('category');
+        $platform = $request->get('platform', 'All');
+        $search = $request->get('search');
 
-        if ($request->has('category')) {
-            $query->where('category', $request->category);
-        }
-        if ($request->has('platform')) {
-            $query->where('platform', $request->platform);
-        }
-        if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
+        $cacheKey = "services_list_p{$page}_l{$limit}_c{$category}_pl{$platform}_s" . md5($search);
 
-        $services = $query->get();
+        $services = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($request) {
+            $query = Service::active()->orderBy('display_order');
 
-        // Mark favorites if authenticated
+            if ($request->has('category')) {
+                $query->where('category', $request->category);
+            }
+            if ($request->filled('platform') && $request->platform !== 'All') {
+                $query->where('platform', $request->platform);
+            }
+            if ($request->filled('search')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                      ->orWhere('category', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            return $query->paginate($request->get('limit', 50));
+        });
+
+        // Mark favorites if authenticated (Do not cache this part as it's user-specific)
         if (auth()->check()) {
             $userId = auth()->id();
             $favorites = FavoriteService::where('user_id', $userId)
                 ->pluck('service_id')
+                ->flip()
                 ->toArray();
-            $services->each(function ($s) use ($favorites) {
-                $s->is_favorite = in_array($s->id, $favorites);
+
+            $services->getCollection()->transform(function ($s) use ($favorites) {
+                $s->is_favorite = isset($favorites[$s->id]);
+                return $s;
             });
         }
 
@@ -41,15 +57,18 @@ class ServiceController extends Controller
 
     public function categories()
     {
-        $categories = Service::active()
-            ->select('category', 'platform')
-            ->selectRaw('COUNT(*) as service_count')
-            ->groupBy('category', 'platform')
-            ->orderBy('category')
-            ->get();
+        $categories = \Illuminate\Support\Facades\Cache::remember('services_categories_summary', 3600, function () {
+            return Service::active()
+                ->select('category', 'platform')
+                ->selectRaw('COUNT(*) as service_count')
+                ->groupBy('category', 'platform')
+                ->orderBy('category')
+                ->get();
+        });
 
         return response()->json($categories);
     }
+
 
     public function show($id)
     {
