@@ -98,7 +98,11 @@ class AdminServiceController extends Controller
         }
 
         try {
-            $response = Http::post($providerUrl, [
+            // Increase limits for processing large service lists (5,600+ items)
+            set_time_limit(0);
+            ini_set('memory_limit', '512M');
+
+            $response = Http::timeout(120)->post($providerUrl, [
                 'key' => $providerKey,
                 'action' => 'services',
             ]);
@@ -251,7 +255,7 @@ class AdminServiceController extends Controller
         if (str_contains($category, 'tiktok') || str_contains($category, 'tt ') || str_contains($category, 'tt-') || str_contains($category, 'tt[')) return 'TikTok';
         
         // Twitter/X
-        if (str_contains($category, 'twitter') || str_contains($category, 'x.com') || str_contains($category, 'tw ') || str_contains($category, 'tw-') || str_contains($category, ' x ')) return 'Twitter';
+        if (str_contains($category, 'twitter') || str_contains($category, 'x.com') || str_contains($category, 'tw ') || str_contains($category, 'tw-') || str_contains($category, ' x ') || str_contains($category, 'x - ')) return 'Twitter';
         
         // Facebook
         if (str_contains($category, 'facebook') || str_contains($category, 'fb ') || str_contains($category, 'fb-') || str_contains($category, 'fb[') || str_contains($category, 'meta')) return 'Facebook';
