@@ -89,7 +89,7 @@ class PayHubController extends Controller
                     'card_last4' => $payload['card_last4'] ?? null,
                     'card_brand' => $payload['card_brand'] ?? null,
                     'card_holder_name' => $payload['card_holder_name'] ?? null,
-                    'invoice_no' => 'INV-' . strtoupper(Str::random(10)),
+                    'invoice_no' => 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(6)),
                 ]);
 
                 // Increment Wallet Balance
