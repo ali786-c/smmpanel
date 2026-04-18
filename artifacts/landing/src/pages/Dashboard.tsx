@@ -250,7 +250,7 @@ export default function Dashboard() {
   return (
     <div className="h-screen bg-background flex overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 h-full border-r border-border bg-sidebar p-4 shrink-0">
+      <aside className="hidden lg:flex flex-col w-64 h-full border-r border-border bg-sidebar p-4 shrink-0 overflow-y-auto">
         <Link to="/" className="flex items-center gap-2 mb-8 px-2">
           <Rocket className="w-6 h-6 text-primary" />
           <span className="text-lg font-heading font-bold">emazin<span className="text-primary">gSM</span></span>
@@ -262,7 +262,7 @@ export default function Dashboard() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <aside className="relative w-64 h-full bg-sidebar border-r border-border p-4 flex flex-col">
+          <aside className="relative w-64 h-full bg-sidebar border-r border-border p-4 flex flex-col overflow-y-auto">
             <div className="flex items-center justify-between mb-8 px-2">
               <Link to="/" className="flex items-center gap-2">
                 <Rocket className="w-6 h-6 text-primary" />
