@@ -12,7 +12,7 @@ class AdminTicketController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Ticket::with(['user:id,email', 'user.profile:user_id,display_name'])
+        $query = Ticket::with(['user:id,email', 'user.profile:user_id,display_name', 'order:id,status,created_at'])
             ->withCount('messages')
             ->orderByDesc('updated_at');
 
@@ -28,7 +28,7 @@ class AdminTicketController extends Controller
 
     public function show($id)
     {
-        $ticket = Ticket::with(['user.profile', 'messages'])->findOrFail($id);
+        $ticket = Ticket::with(['user.profile', 'messages', 'order.service:id,name'])->findOrFail($id);
         // Wrap in {ticket:} so frontend can use (await r.json()).ticket
         return response()->json(['ticket' => $ticket]);
     }

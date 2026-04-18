@@ -21,7 +21,7 @@ export default function AdminCoupons() {
   const load = async () => {
     setLoading(true);
     const res = await apiFetch("/admin/coupons");
-    if (res.ok) { const d = await res.json(); setCoupons(d.data ?? d.coupons ?? []); }
+    if (res.ok) { const d = await res.json(); setCoupons(d?.data ?? d?.coupons ?? []); }
     setLoading(false);
   };
 

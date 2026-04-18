@@ -28,11 +28,17 @@ export default function Tickets() {
   const [ticketMessages, setTicketMessages] = useState<Record<string, TicketMessage[]>>({});
   const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState("");
 
   useEffect(() => {
     apiFetch("/tickets?per_page=50")
       .then(r => r.ok ? r.json() : null)
-      .then(d => { setTickets(d?.data ?? d?.tickets ?? []); })
+      .then(d => { setTickets(d?.data ?? d?.tickets ?? []); });
+
+    apiFetch("/orders?per_page=20")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setOrders(d?.data ?? d?.orders ?? []); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -41,7 +47,12 @@ export default function Tickets() {
     setCreating(true);
     const res = await apiFetch("/tickets", {
       method: "POST",
-      body: JSON.stringify({ subject: newSubject.trim(), category: newCategory, message: newMessage.trim() }),
+      body: JSON.stringify({ 
+        subject: newSubject.trim(), 
+        category: newCategory, 
+        message: newMessage.trim(),
+        order_id: selectedOrder || null
+      }),
     });
     if (!res.ok) { toast.error("Failed to create ticket"); setCreating(false); return; }
     const ticket = await res.json();
@@ -101,6 +112,16 @@ export default function Tickets() {
             <option value="technical">Technical</option>
             <option value="order">Order Issue</option>
           </select>
+          {newCategory === "order" && (
+            <select value={selectedOrder} onChange={e => setSelectedOrder(e.target.value)} className="w-full rounded-lg bg-secondary/50 border border-border px-3 py-2 text-sm">
+                <option value="">Select an order (Optional)</option>
+                {orders.map(o => (
+                    <option key={o.id} value={o.id}>
+                        Order #{String(o.id).slice(0,8)}... - {o.service_name || "Order"} (${o.cost})
+                    </option>
+                ))}
+            </select>
+          )}
           <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Describe your issue..." className="bg-secondary/50 min-h-[100px]" />
           <div className="flex gap-2">
             <Button onClick={createTicket} disabled={creating || !newSubject.trim() || !newMessage.trim()} className="gradient-primary text-primary-foreground">
@@ -134,9 +155,16 @@ export default function Tickets() {
               <div className="border-t border-border p-4 space-y-3">
                 {(ticketMessages[ticket.id] || []).map(msg => (
                   <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${msg.sender === "user" ? "gradient-primary text-primary-foreground" : "bg-secondary/50"}`}>
-                      <p className="text-xs font-medium mb-1 opacity-70">{msg.sender === "user" ? "You" : "Support"}</p>
-                      {msg.content}
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm transition-all hover:scale-[1.01] ${
+                      msg.sender === "user" 
+                        ? "bg-primary text-primary-foreground rounded-tr-none" 
+                        : "glass bg-white dark:bg-white/10 text-foreground border border-border/50 rounded-tl-none"
+                    }`}>
+                      <div className="flex items-center justify-between gap-4 mb-1 opacity-70">
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{msg.sender === "user" ? "You" : "Support Team"}</span>
+                        <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
+                      </div>
+                      <p className="leading-relaxed">{msg.content}</p>
                     </div>
                   </div>
                 ))}

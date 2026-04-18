@@ -17,6 +17,7 @@ export default function Affiliates() {
     totalVisits: 0,
     conversionRate: 0,
     availableBalance: 0,
+    referrals: [],
   });
 
   const fetchStats = () => {
@@ -32,6 +33,7 @@ export default function Affiliates() {
           totalVisits: d.total_visits ?? 0,
           conversionRate: d.conversion_rate ?? 0,
           availableBalance: parseFloat(d.available_balance ?? 0),
+          referrals: d.referrals ?? [],
         });
       })
       .finally(() => setLoading(false));
@@ -208,7 +210,7 @@ export default function Affiliates() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {stats.referrals.length > 0 ? (
+                {stats.referrals?.length > 0 ? (
                   stats.referrals.map((ref: any) => (
                     <tr key={ref.id} className="hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 font-medium">{ref.referred?.profile?.display_name || "New User"}</td>

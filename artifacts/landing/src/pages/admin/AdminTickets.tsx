@@ -91,7 +91,11 @@ export default function AdminTickets() {
                     <span className="font-medium text-sm truncate">{t.subject}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[t.status] ?? "bg-secondary text-muted-foreground"}`}>{t.status}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t.user_email ?? t.user?.email ?? "User"} · {new Date(t.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t.user_email ?? t.user?.email ?? "User"} 
+                    {t.order_id && <span className="text-primary font-bold ml-2">· Order #{String(t.order_id).slice(0,8)}</span>}
+                    · {new Date(t.created_at).toLocaleDateString()}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {t.status !== "closed" && (
@@ -113,9 +117,18 @@ export default function AdminTickets() {
                   {ticketDetail ? (
                     <div className="space-y-3 max-h-80 overflow-y-auto">
                       {(ticketDetail.messages ?? ticketDetail.replies ?? []).map((m: any, i: number) => (
-                        <div key={i} className={`rounded-xl p-3 text-sm ${m.is_admin || m.sender_role === "admin" ? "bg-primary/10 ml-6" : "bg-secondary/40 mr-6"}`}>
-                          <p className="text-xs font-medium text-muted-foreground mb-1">{m.is_admin || m.sender_role === "admin" ? "Admin" : "User"} · {new Date(m.created_at).toLocaleString()}</p>
-                          <p>{m.message ?? m.body}</p>
+                        <div key={i} className={`flex ${m.is_admin || m.sender_role === "admin" ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                            m.is_admin || m.sender_role === "admin" 
+                              ? "bg-primary text-primary-foreground rounded-tr-none" 
+                              : "glass bg-background border border-border/50 rounded-tl-none"
+                          }`}>
+                            <div className="flex items-center justify-between gap-4 mb-1 opacity-70">
+                              <span className="text-[10px] font-bold uppercase tracking-wider">{m.is_admin || m.sender_role === "admin" ? "Admin Support" : (ticketDetail.user?.profile?.display_name || "User")}</span>
+                              <span className="text-[10px]">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <p className="leading-relaxed whitespace-pre-wrap">{m.message ?? m.body ?? m.content}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
