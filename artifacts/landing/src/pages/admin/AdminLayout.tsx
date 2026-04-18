@@ -103,8 +103,8 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-sidebar p-4">
+    <div className="h-screen bg-background flex overflow-hidden">
+      <aside className="hidden lg:flex flex-col w-64 h-full border-r border-border bg-sidebar p-4 shrink-0">
         {sidebar}
       </aside>
       {mobileMenuOpen && (
