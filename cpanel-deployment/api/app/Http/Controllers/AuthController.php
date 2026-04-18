@@ -56,7 +56,7 @@ class AuthController extends Controller
         try {
             $user = User::create([
                 'email'    => strtolower(trim($validated['email'])),
-                'password' => Hash::make($validated['password']),
+                'password' => $validated['password'],
             ]);
 
             $referralCode = strtolower(substr(md5($user->id . now()), 0, 8));
@@ -256,7 +256,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $email)->first();
         if ($user) {
-            $user->update(['password' => Hash::make($validated['password'])]);
+            $user->update(['password' => $validated['password']]);
             DB::table('password_resets')->where('email', $email)->delete();
             Log::info('Password reset completed', ['user_id' => $user->id]);
         }

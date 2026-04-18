@@ -53,7 +53,7 @@ class AuthController extends Controller
         try {
             $user = User::create([
                 'email'    => strtolower(trim($validated['email'])),
-                'password' => Hash::make($validated['password']),
+                'password' => $validated['password'],
             ]);
 
             $referralCode = strtolower(substr(md5($user->id . now()), 0, 8));
@@ -216,7 +216,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'If the token is valid, your password has been reset.']);
         }
 
-        $user->update(['password' => Hash::make($validated['password'])]);
+        $user->update(['password' => $validated['password']]);
 
         Log::info('Password reset completed', ['user_id' => $user->id]);
 

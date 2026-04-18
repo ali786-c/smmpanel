@@ -66,7 +66,7 @@ class ProfileController extends Controller
             return response()->json(['error' => 'New password must be different from your current password'], 422);
         }
 
-        $user->update(['password' => Hash::make($validated['password'])]);
+        $user->update(['password' => $validated['password']]);
         return response()->json(['message' => 'Password changed successfully']);
     }
 
