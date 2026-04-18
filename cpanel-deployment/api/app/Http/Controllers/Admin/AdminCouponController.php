@@ -32,6 +32,9 @@ class AdminCouponController extends Controller
             'expires_at' => 'nullable|date',
         ]);
 
+        $validated['code'] = strtoupper($validated['code']);
+        $validated['is_active'] = $validated['is_active'] ?? true;
+
         $coupon = Coupon::create(array_merge($validated, ['id' => (string) Str::uuid()]));
         return response()->json($coupon, 201);
     }
@@ -49,7 +52,11 @@ class AdminCouponController extends Controller
             'expires_at' => 'nullable|date',
         ]);
 
-        $coupon->update(array_filter($validated, fn($v) => $v !== null));
+        if (isset($validated['code'])) {
+            $validated['code'] = strtoupper($validated['code']);
+        }
+
+        $coupon->update(array_filter($validated, fn($v) => $v !== null || $request->has(array_search($v, $validated)))); 
         return response()->json($coupon);
     }
 

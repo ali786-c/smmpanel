@@ -23,6 +23,7 @@ use App\Http\Controllers\OrderActionController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CouponController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
@@ -46,6 +47,9 @@ Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook
 // ─── PayHub Webhook (Public — PayHub calls this, no auth) ─────────────────
 Route::post('/webhooks/payhub', [PayHubController::class, 'handleWebhook']);
 Route::post('/payment/payhub/webhook', [PayHubController::class, 'handleWebhook']); // Keep alias for safety
+
+// ─── Coupon Validation (Public/Auth) ──────────────
+Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
 
 // ─── Affiliate Tracking (Public) ───────────────────
 Route::get('/affiliates/track/{code}', [AffiliateController::class, 'trackVisit']);
