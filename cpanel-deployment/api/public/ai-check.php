@@ -184,6 +184,42 @@ header('Content-Type: text/html; charset=utf-8');
         <?php endif; ?>
     </div>
 
+    <!-- 5. Active Keywords -->
+    <div class="card">
+        <h2>Keyword Analytics</h2>
+        <?php
+        try {
+            $keywordCount = \App\Models\BlogKeyword::count();
+            $activeKeywords = \App\Models\BlogKeyword::where('status', 'active')->count();
+            ?>
+            <div>Total Keywords: <strong><?php echo $keywordCount; ?></strong></div>
+            <div>Active Keywords (Ready for AI): <strong><?php echo $activeKeywords; ?></strong></div>
+            
+            <?php if ($activeKeywords == 0): ?>
+                <div class="fail" style="margin-top:10px; padding:10px; border-radius:8px;">
+                    CRITICAL: Aap ke paas koi "Active" keyword nahi hai. AI start nahi ho sakta.
+                </div>
+            <?php endif; ?>
+            <?php
+        } catch (Exception $e) {
+            echo "Error checking keywords: " . $e->getMessage();
+        }
+        ?>
+    </div>
+
+    <!-- 6. Real-time Cache Progress -->
+    <div class="card">
+        <h2>Current Cache Progress</h2>
+        <?php
+        $progress = Cache::get('ai_blog_progress');
+        if ($progress):
+            ?>
+            <div class="details"><?php echo json_encode($progress, JSON_PRETTY_PRINT); ?></div>
+        <?php else: ?>
+            <div class="details">No active progress found in Cache. (System is Idle)</div>
+        <?php endif; ?>
+    </div>
+
     <div style="text-align: center; margin-top: 40px; color: #cbd5e0; font-size: 12px;">
         AI Blog Engine v2.0 - Built by Antigravity
     </div>
