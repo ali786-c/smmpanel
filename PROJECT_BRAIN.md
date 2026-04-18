@@ -136,7 +136,7 @@ A unified build and sync script that:
 | Password Reset Completion | `POST /auth/reset-password` | `ResetPassword.tsx` | N/A (confirmation only) | ✅ Active |
 | Order Placement | `POST /orders` | `NewOrder.tsx`, `MassOrder.tsx` | `order-placed.blade.php` | ✅ Active |
 | Order Cancellation | `POST /orders/{id}/request-cancel` | `OrderDetail.tsx` | `order-action.blade.php` | ✅ Active |
-| Order Speedup | `POST /orders/{id}/request-speedup` | **MISSING** (backend ready) | `order-action.blade.php` | ⚠️ Backend Only |
+| Order Speedup | `POST /orders/{id}/request-speedup` | `OrderDetail.tsx` | `order-action.blade.php` | ✅ Active |
 | Order Refill | `POST /orders/{id}/request-refill` | `OrderDetail.tsx` | `order-action.blade.php` | ✅ Active |
 | Admin Balance Adjustment | `POST /admin/users/{id}/adjust-balance` | `AdminUserDetail.tsx` | `balance-updated.blade.php` | ✅ Active |
 
@@ -155,7 +155,6 @@ MAILJET_SENDER_NAME=emazingSM
 ```
 
 ### Known Gaps
-- **Speedup Button**: Backend supports order speedup requests but frontend `OrderDetail.tsx` lacks the UI button
 - **Email Templates**: Could be enhanced with more branding elements and localization support
 
 ---

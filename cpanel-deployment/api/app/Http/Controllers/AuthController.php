@@ -13,7 +13,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use App\Services\MailjetService;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
@@ -94,6 +96,7 @@ class AuthController extends Controller
             DB::commit();
 
             $token = JWTAuth::fromUser($user);
+            $this->sendWelcomeEmail($user);
 
             return response()->json([
                 'token' => $token,
@@ -201,7 +204,33 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email|max:254']);
-        // Always return the same response to prevent email enumeration
+
+        $email = strtolower(trim($request->input('email')));
+        $user = User::where('email', $email)->first();
+
+        if ($user) {
+            $token = hash_hmac('sha256', Str::random(64), config('app.key'));
+            DB::table('password_resets')->updateOrInsert(
+                ['email' => $email],
+                ['token' => $token, 'created_at' => now()]
+            );
+
+            try {
+                app(MailjetService::class)->sendTemplate(
+                    $email,
+                    $user->profile?->display_name ?? $user->email,
+                    'Reset your password',
+                    'emails.password-reset',
+                    [
+                        'name' => $user->profile?->display_name ?? 'Customer',
+                        'resetUrl' => env('FRONTEND_URL', config('app.url')) . '/reset-password?token=' . urlencode($token) . '&email=' . urlencode($email),
+                    ]
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Mailjet forgot password send failed', ['error' => $e->getMessage(), 'email' => $email]);
+            }
+        }
+
         return response()->json(['message' => 'If this email exists, a password reset link has been sent.']);
     }
 
@@ -215,16 +244,22 @@ class AuthController extends Controller
             'password.regex' => 'Password must contain at least one letter and one number.',
         ]);
 
-        $user = User::where('email', strtolower(trim($validated['email'])))->first();
+        $email = strtolower(trim($validated['email']));
+        $record = DB::table('password_resets')
+            ->where('email', $email)
+            ->where('token', $validated['token'])
+            ->first();
 
-        // Always return the same response to prevent email enumeration
-        if (!$user) {
+        if ($record === null || Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
             return response()->json(['message' => 'If the token is valid, your password has been reset.']);
         }
 
-        $user->update(['password' => Hash::make($validated['password'])]);
-
-        Log::info('Password reset completed', ['user_id' => $user->id]);
+        $user = User::where('email', $email)->first();
+        if ($user) {
+            $user->update(['password' => Hash::make($validated['password'])]);
+            DB::table('password_resets')->where('email', $email)->delete();
+            Log::info('Password reset completed', ['user_id' => $user->id]);
+        }
 
         return response()->json(['message' => 'Password reset successfully. You can now log in.']);
     }
@@ -238,5 +273,23 @@ class AuthController extends Controller
             'profile' => $user->profile,
             'roles'   => $user->roles->pluck('role'),
         ]);
+    }
+
+    private function sendWelcomeEmail(User $user): void
+    {
+        try {
+            app(MailjetService::class)->sendTemplate(
+                $user->email,
+                $user->profile?->display_name ?? $user->email,
+                'Welcome to ' . config('app.name', 'emazingSM'),
+                'emails.welcome',
+                [
+                    'name' => $user->profile?->display_name ?? 'Customer',
+                    'loginUrl' => env('FRONTEND_URL', config('app.url')), 
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Mailjet welcome email failed', ['error' => $e->getMessage(), 'email' => $user->email]);
+        }
     }
 }

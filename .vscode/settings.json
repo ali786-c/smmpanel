@@ -1,0 +1,11 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"C:\\\\Users\\\\Muhammad Aliyan\\\\Downloads\\\\Laravel-Migration\\\\Laravel-Migration\" ; node scripts/sync-cpanel\\.mjs$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git push": true,
+        "git add": true,
+        "git commit": true
+    }
+}

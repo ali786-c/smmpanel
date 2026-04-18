@@ -7,7 +7,9 @@ use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Services\JustPanelService;
+use App\Services\MailjetService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -101,6 +103,22 @@ class OrderActionController extends Controller
             'read'       => false,
             'created_at' => now(),
         ]);
+
+        try {
+            app(MailjetService::class)->sendTemplate(
+                $user->email,
+                $user->profile?->display_name ?? $user->email,
+                $immediateResult['success'] ? 'Your order has been cancelled' : 'Cancellation request submitted',
+                'emails.order-action',
+                [
+                    'name' => $user->profile?->display_name ?? 'Customer',
+                    'message' => $ticketMsg,
+                    'orderUrl' => env('FRONTEND_URL', config('app.url')) . '/dashboard/orders/' . $order->id,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Mailjet order cancellation email failed', ['error' => $e->getMessage(), 'order_id' => $order->id]);
+        }
 
         return response()->json([
             'message'    => $immediateResult['success'] ? 'Order cancelled successfully' : 'Cancellation request submitted and being processed',
@@ -209,6 +227,22 @@ class OrderActionController extends Controller
             'created_at' => now(),
         ]);
 
+        try {
+            app(MailjetService::class)->sendTemplate(
+                $user->email,
+                $user->profile?->display_name ?? $user->email,
+                $speedupResult['success'] ? 'Speedup request submitted' : 'Speedup request received',
+                'emails.order-action',
+                [
+                    'name' => $user->profile?->display_name ?? 'Customer',
+                    'message' => $msgContent,
+                    'orderUrl' => env('FRONTEND_URL', config('app.url')) . '/dashboard/orders/' . $order->id,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Mailjet speedup email failed', ['error' => $e->getMessage(), 'order_id' => $order->id]);
+        }
+
         return response()->json([
             'message'        => $speedupResult['success'] ? 'Speedup request sent to provider' : 'Speedup request received – manual escalation triggered',
             'provider_pinged' => $speedupResult['success'],
@@ -270,6 +304,35 @@ class OrderActionController extends Controller
             'content'    => $systemMsg,
             'created_at' => now(),
         ]);
+
+        Notification::create([
+            'id'         => (string) Str::uuid(),
+            'user_id'    => $user->id,
+            'title'      => $refillResult['success'] ? 'Refill Request Submitted' : 'Refill Request Logged',
+            'message'    => $refillResult['success']
+                ? "Your refill request for {$serviceName} has been submitted to our provider."
+                : "Refill request received. Our team will review and escalate it manually.",
+            'type'       => $refillResult['success'] ? 'success' : 'info',
+            'link'       => "/dashboard/tickets/{$ticket->id}",
+            'read'       => false,
+            'created_at' => now(),
+        ]);
+
+        try {
+            app(MailjetService::class)->sendTemplate(
+                $user->email,
+                $user->profile?->display_name ?? $user->email,
+                $refillResult['success'] ? 'Refill request submitted' : 'Refill request logged',
+                'emails.order-action',
+                [
+                    'name' => $user->profile?->display_name ?? 'Customer',
+                    'message' => $systemMsg,
+                    'orderUrl' => env('FRONTEND_URL', config('app.url')) . '/dashboard/orders/' . $order->id,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Mailjet refill email failed', ['error' => $e->getMessage(), 'order_id' => $order->id]);
+        }
 
         return response()->json([
             'message'        => $refillResult['success'] ? 'Refill request sent to provider' : 'Refill request logged for manual review',

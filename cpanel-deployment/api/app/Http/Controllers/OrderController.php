@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Service;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Services\MailjetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -143,6 +144,26 @@ class OrderController extends Controller
                 'link' => "/dashboard/orders/{$orderId}",
                 'created_at' => now(),
             ]);
+
+            try {
+                app(MailjetService::class)->sendTemplate(
+                    $user->email,
+                    $user->profile?->display_name ?? $user->email,
+                    'Your order has been placed',
+                    'emails.order-placed',
+                    [
+                        'name' => $user->profile?->display_name ?? 'Customer',
+                        'orderId' => $orderId,
+                        'serviceName' => $service->name,
+                        'quantity' => $order->quantity,
+                        'totalCost' => '$' . number_format($cost, 4),
+                        'status' => $order->status,
+                        'orderUrl' => env('FRONTEND_URL', config('app.url')) . '/dashboard/orders/' . $orderId,
+                    ]
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Mailjet order placed email failed', ['error' => $e->getMessage(), 'order_id' => $orderId]);
+            }
 
             DB::commit();
             return response()->json($order->load('service'), 201);
