@@ -7,7 +7,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const DEPLOY_DIR = path.resolve(ROOT, 'cpanel-deployment');
 const UI_SRC = path.resolve(ROOT, 'artifacts/landing');
-const API_SRC = path.resolve(ROOT, 'artifacts/laravel-api');
 
 function run(command, cwd, env = process.env) {
     console.log(`> Running: ${command} in ${cwd}`);
@@ -20,7 +19,7 @@ async function sync() {
     // 1. Ensure deployment directory exists and is clean
     if (fs.existsSync(DEPLOY_DIR)) {
         console.log('🧹 Cleaning old deployment files...');
-        // Only clean the root and assets, keep api/ as it's modified directly
+        // Only clean the root and assets, keep api/ as it's the fixed source of truth
         const items = fs.readdirSync(DEPLOY_DIR);
         items.forEach(item => {
             if (item !== 'api' && item !== '.git' && item !== '.cpanel.yml' && item !== '.htaccess') {
@@ -48,21 +47,7 @@ async function sync() {
         process.exit(1);
     }
 
-    // 4. Copy API files to api/ (Optional - skipped by default to protect direct changes)
-    const syncApi = process.argv.includes('--with-api');
-    
-    if (syncApi) {
-        console.log('\n📂 Copying Laravel API to deployment/api...');
-        const deployApiDir = path.join(DEPLOY_DIR, 'api');
-        if (!fs.existsSync(deployApiDir)) {
-            fs.mkdirSync(deployApiDir, { recursive: true });
-        }
-        
-        // Copy Laravel contents (including vendor as requested for a working backend)
-        copyRecursiveSync(API_SRC, deployApiDir, ['.git', 'storage/framework/cache/data', 'storage/logs']);
-    } else {
-        console.log('\n⏩ Skipping Backend sync (development workflow). Use --with-api to force sync.');
-    }
+    console.log('\n⏩ Ignoring API sync (cpanel-deployment/api is now the permanent source of truth).');
 
     console.log('\n✅ Deployment sync complete!');
     console.log(`📍 Output: ${DEPLOY_DIR}`);

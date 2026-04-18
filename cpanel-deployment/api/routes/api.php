@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminServiceController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminTicketController;
+use App\Http\Controllers\Admin\AdminBlogAutomationController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\OrderActionController;
 use App\Http\Controllers\AnnouncementController;
@@ -202,6 +203,15 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::patch('/blog/{id}', [AdminBlogController::class, 'update']);
     Route::delete('/blog/{id}', [AdminBlogController::class, 'destroy']);
     Route::post('/blog/generate-ai', [AdminBlogController::class, 'generateAI']);
+
+    // Blog Automation
+    Route::get('/blog-automation/config', [AdminBlogAutomationController::class, 'getConfig']);
+    Route::post('/blog-automation/config', [AdminBlogAutomationController::class, 'updateConfig']);
+    Route::get('/blog-automation/keywords', [AdminBlogAutomationController::class, 'keywords']);
+    Route::post('/blog-automation/keywords', [AdminBlogAutomationController::class, 'addKeyword']);
+    Route::delete('/blog-automation/keywords/{id}', [AdminBlogAutomationController::class, 'deleteKeyword']);
+    Route::post('/blog-automation/trigger', [AdminBlogAutomationController::class, 'triggerNow']);
+    Route::get('/blog-automation/progress', [AdminBlogAutomationController::class, 'getProgress']);
 
     // Announcements
     Route::get('/announcements', [AdminAnnouncementController::class, 'index']);
