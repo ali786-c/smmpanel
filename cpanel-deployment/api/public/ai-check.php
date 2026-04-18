@@ -220,6 +220,53 @@ header('Content-Type: text/html; charset=utf-8');
         <?php endif; ?>
     </div>
 
+    <!-- 7. Recent AI Logs -->
+    <div class="card">
+        <h2>Recent AI Logs (Last 10 lines)</h2>
+        <div class="details"><?php
+            $logPath = storage_path('logs/ai_automation.log');
+            if (file_exists($logPath)) {
+                $lines = array_slice(file($logPath), -10);
+                echo htmlspecialchars(implode("", $lines));
+            } else {
+                echo "Log file not created yet.";
+            }
+        ?></div>
+    </div>
+
+    <!-- 8. Direct Test Execution (Force Sync) -->
+    <div class="card" style="border: 2px solid #e53e3e;">
+        <h2>Manual Force Test (DANGEROUS - Slow)</h2>
+        <p style="font-size: 13px; color: #e53e3e;">Yeh button click karne se AI background mein nahi balkay foran (Synchronously) chale ga. Browser hang ho sakta hai 1 min ke liye, lekin error samne aa jayega.</p>
+        
+        <form method="POST">
+            <input type="hidden" name="force_run" value="1">
+            <button type="submit" style="background: #e53e3e; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                Run Direct Test Generation Now
+            </button>
+        </form>
+
+        <?php
+        if (isset($_POST['force_run'])) {
+            try {
+                echo "<div class='details' style='background:#fffde7; border-color:#fbc02d;'>[SYSTEM] Starting Direct Test... Please wait...</div>";
+                ob_flush(); flush(); // Try to push output to browser
+                
+                $service = app(\App\Services\AIBloggingService::class);
+                $keyword = \App\Models\BlogKeyword::where('status', 'active')->first();
+                
+                if (!$keyword) throw new Exception("No active keywords found!");
+                
+                $result = $service->generateFullBlog($keyword);
+                echo "<div class='pass' style='padding:10px; border-radius:8px; margin-top:10px;'>SUCCESS! Blog ID: ".$result['id']."</div>";
+            } catch (Exception $e) {
+                echo "<div class='fail' style='padding:10px; border-radius:8px; margin-top:10px;'>FATAL ERROR: ".$e->getMessage()."</div>";
+                echo "<div class='details'>".$e->getTraceAsString()."</div>";
+            }
+        }
+        ?>
+    </div>
+
     <div style="text-align: center; margin-top: 40px; color: #cbd5e0; font-size: 12px;">
         AI Blog Engine v2.0 - Built by Antigravity
     </div>
