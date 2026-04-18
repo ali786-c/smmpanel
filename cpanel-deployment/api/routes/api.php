@@ -30,6 +30,7 @@ use App\Http\Controllers\PublicApiController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\AffiliateController;
 use App\Http\Controllers\Payment\PayHubController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +46,9 @@ Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook
 // ─── PayHub Webhook (Public — PayHub calls this, no auth) ─────────────────
 Route::post('/webhooks/payhub', [PayHubController::class, 'handleWebhook']);
 Route::post('/payment/payhub/webhook', [PayHubController::class, 'handleWebhook']); // Keep alias for safety
+
+// ─── Affiliate Tracking (Public) ───────────────────
+Route::get('/affiliates/track/{code}', [AffiliateController::class, 'trackVisit']);
 
 
 // ─── Landing Page (Public) ─────────────────────────
@@ -156,6 +160,10 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+
+    // Affiliates (User Dashboard)
+    Route::get('/affiliates/stats', [AffiliateController::class, 'stats']);
+    Route::post('/affiliates/convert', [AffiliateController::class, 'convertToCredit']);
 });
 
 // ─── Admin Routes ──────────────────────────────────

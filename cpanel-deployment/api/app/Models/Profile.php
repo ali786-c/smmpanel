@@ -11,7 +11,7 @@ class Profile extends Model
 
     protected $fillable = [
         'id', 'user_id', 'display_name', 'avatar_url', 'phone',
-        'api_key', 'referral_code', 'is_banned', 'ban_reason',
+        'api_key', 'referral_code', 'total_visits', 'is_banned', 'ban_reason',
     ];
 
     protected $casts = [

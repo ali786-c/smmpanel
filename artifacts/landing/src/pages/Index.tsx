@@ -16,8 +16,9 @@ import SystemStatus from "@/components/landing/SystemStatus";
 import StickyMobileCTA from "@/components/landing/StickyMobileCTA";
 import ExitIntentPopup from "@/components/landing/ExitIntentPopup";
 import FloatingChatWidget from "@/components/landing/FloatingChatWidget";
-import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { apiFetch } from "@/lib/api";
 import MaintenanceOverlay from "@/components/MaintenanceOverlay";
 
 const isMaintenance = true; // Set to false to disable maintenance mode
@@ -94,6 +95,14 @@ const trustedByNames = ["Growthify", "ScaleUp Media", "ViralReach", "Amplifyd", 
 export default function Index() {
   const { t } = useTranslation();
   const [navScrolled, setNavScrolled] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      apiFetch(`/affiliates/track/${ref}`).catch(() => {});
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 20);

@@ -27,6 +27,12 @@ export default function Signup() {
   const turnstileRef = useRef<TurnstileInstance>(null);
   const referralCode = searchParams.get("ref") ?? "";
 
+  useEffect(() => {
+    if (referralCode) {
+      apiFetch(`/affiliates/track/${referralCode}`).catch(() => {});
+    }
+  }, [referralCode]);
+
   const passwordChecks = useMemo(() => ({
     length:  password.length >= 8,
     letter:  /[a-zA-Z]/.test(password),

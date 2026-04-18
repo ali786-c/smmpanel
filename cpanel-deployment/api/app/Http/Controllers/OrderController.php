@@ -130,10 +130,12 @@ class OrderController extends Controller
                 $coupon->increment('used_count');
             }
 
+            // Award referral commission on first order only
+            $this->awardReferralCommission($user, $cost);
+
             // Send to provider in background (non-blocking)
             $this->sendToProvider($order, $service);
 
-            // Process referral commission via DB trigger would handle this
             // Create notification
             Notification::create([
                 'id' => (string) Str::uuid(),
@@ -349,6 +351,38 @@ class OrderController extends Controller
             DB::rollBack();
             Log::error('Mass order failed: ' . $e->getMessage());
             return response()->json(['error' => 'Mass order failed. Please try again.'], 500);
+        }
+    }
+
+    private function awardReferralCommission($user, float $orderCost): void
+    {
+        try {
+            // Check if this is the user's first order
+            $orderCount = \App\Models\Order::where('user_id', $user->id)->count();
+            if ($orderCount > 1) {
+                return; // Not the first order
+            }
+
+            $referral = \App\Models\Referral::where('referred_id', $user->id)->first();
+            if (!$referral) {
+                return; // This user was not referred by anyone
+            }
+
+            // Calculate commission
+            $commissionAmount = round($orderCost * $referral->commission_rate, 4);
+
+            if ($commissionAmount > 0) {
+                $referral->increment('total_earnings', $commissionAmount);
+                $referral->increment('available_balance', $commissionAmount);
+
+                Log::info('Referral commission awarded', [
+                    'referrer_id' => $referral->referrer_id,
+                    'referred_id' => $user->id,
+                    'amount'      => $commissionAmount
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Awarding referral commission failed', ['error' => $e->getMessage()]);
         }
     }
 }
