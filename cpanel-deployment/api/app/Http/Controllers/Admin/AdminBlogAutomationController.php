@@ -79,8 +79,8 @@ class AdminBlogAutomationController extends Controller
             return response()->json(['error' => 'No active keyword available'], 422);
         }
 
-        // Run synchronously for immediate admin feedback
-        GenerateAIBlogJob::dispatchSync($keyword);
+        // Run in background for immediate admin feedback and to prevent timeouts
+        GenerateAIBlogJob::dispatch($keyword);
 
         return response()->json(['message' => "Generation started for '{$keyword->keyword}'"]);
     }
