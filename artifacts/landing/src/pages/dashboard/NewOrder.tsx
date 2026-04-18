@@ -269,14 +269,22 @@ export default function NewOrder() {
                 ) : filteredServices.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">No services found. Select a platform or clear search.</p>
                 ) : filteredServices.map(svc => (
-                  <button key={svc.id} onClick={() => setSelectedServiceId(svc.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-all ${selectedServiceId === svc.id ? "gradient-primary text-primary-foreground" : "hover:bg-secondary/50 glass"}`}>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{svc.name}</p>
-                      <p className={`text-xs ${selectedServiceId === svc.id ? "opacity-70" : "text-muted-foreground"}`}>{svc.category}</p>
-                    </div>
-                    <span className={`text-xs font-semibold ml-2 shrink-0 ${selectedServiceId === svc.id ? "text-primary-foreground" : "text-primary"}`}>${Number(svc.rate).toFixed(4)}/1K</span>
-                  </button>
+                  <div key={svc.id} className="relative group">
+                    <button onClick={() => setSelectedServiceId(svc.id)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-all ${selectedServiceId === svc.id ? "gradient-primary text-primary-foreground" : "hover:bg-secondary/50 glass"}`}>
+                      <div className="min-w-0 flex-1 pr-8">
+                        <p className="font-medium truncate">{svc.name}</p>
+                        <p className={`text-xs ${selectedServiceId === svc.id ? "opacity-70" : "text-muted-foreground"}`}>{svc.category}</p>
+                      </div>
+                      <span className={`text-xs font-semibold ml-2 shrink-0 ${selectedServiceId === svc.id ? "text-primary-foreground" : "text-primary"}`}>${Number(svc.rate).toFixed(4)}/1K</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(svc.id); }}
+                      className={`absolute right-12 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all hover:scale-110 ${favorites.has(svc.id) ? "text-warning" : "text-muted-foreground/30 hover:text-warning"}`}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${favorites.has(svc.id) ? "fill-current" : ""}`} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
