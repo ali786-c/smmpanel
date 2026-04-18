@@ -11,5 +11,8 @@
     RewriteRule ^ - [L]
 
     # 3. Route everything else to React index.html for CSR (Client Side Routing)
+    # But ONLY if it's not a request for an asset or the API
+    RewriteCond %{REQUEST_URI} !^/assets/
+    RewriteCond %{REQUEST_URI} !^/api/
     RewriteRule ^ index.html [L]
 </IfModule>
