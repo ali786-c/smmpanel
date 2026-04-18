@@ -1,6 +1,6 @@
-# Project Brain: UpgraderCX (Laravel -> React Migration)
+# Project Brain: emazingSM (Laravel -> React Migration)
 
-Welcome to the **Project Brain**. This document serves as the central context, technical memory, and roadmap for the UpgraderCX platform.
+Welcome to the **Project Brain**. This document serves as the central context, technical memory, and roadmap for the emazingSM platform.
 
 ---
 
@@ -88,11 +88,22 @@ A unified build and sync script that:
 - [x] Phase 3: Webhook & Security (CSRF exemption + verification).
 - [x] Phase 4: Fulfillment (Wallet balance + Card data logging).
 - [x] Phase 5: Frontend (React Add Funds page + Landing pages).
-### [2026-04-18] - Maintenance Protocol [COMPLETED]
-- **Goal**: Implement a high-end maintenance page for frontend shielding.
-- [x] Created `Maintenance.tsx` with premium animations and modern design.
-- [x] Integrated `MAINTENANCE_MODE` toggle in `App.tsx`.
-- [x] Verified system-wide override functionality.
+### [2026-04-18] - Mailjet Transactional Email System [COMPLETED]
+- **Goal**: Implement comprehensive transactional email system using Mailjet Send API v3.1 for all user and admin interactions.
+- **Architecture**: 
+  - `MailjetService` class handles API communication with fallback logging
+  - Email templates stored in `resources/views/emails/` with responsive HTML layout
+  - Password reset tokens stored in dedicated `password_resets` table
+- **Email Triggers**:
+  - **User Registration**: Welcome email with dashboard link
+  - **Password Reset**: Secure token-based reset link via email
+  - **Order Placement**: Order confirmation with service details and tracking link
+  - **Order Actions**: Cancel, speedup, and refill request notifications
+  - **Admin Balance Adjustments**: Wallet update notifications with transaction details
+- **Frontend Integration**: All email triggers properly wired to UI actions (Signup, Forgot Password, Order placement, Order actions, Admin balance adjustments)
+- **Security**: HMAC token validation for password resets, rate limiting on sensitive endpoints
+- **Configuration**: Mailjet credentials added to `services.php` and `.env.example`
+- **Status**: [COMPLETED] Full email system deployed and integrated with both frontend and backend workflows.
 
 ## 🧠 Future Brain Context (To be updated after every change)
 ### PayHub Implementation Details
@@ -106,3 +117,47 @@ A unified build and sync script that:
 - **UI Architecture**: Uses Framer Motion for premium experience even during downtime.
 - **Toggle**: Must be manually set to `false` for production launch.
 *This section will document the "Why" and "How" of every major feature implemented.*
+
+---
+
+## 📧 Transactional Email System Architecture
+
+### Core Components
+- **MailjetService**: Handles Send API v3.1 communication with automatic fallback to logging on failures
+- **Email Templates**: Blade templates in `resources/views/emails/` with responsive HTML layout
+- **Password Reset**: Dedicated `password_resets` table with HMAC token generation and 60-minute expiry
+
+### Email Trigger Matrix
+
+| Trigger Event | Backend Endpoint | Frontend Component | Email Template | Status |
+|---------------|------------------|-------------------|----------------|--------|
+| User Registration | `POST /auth/register` | `Signup.tsx` | `welcome.blade.php` | ✅ Active |
+| Password Reset Request | `POST /auth/forgot-password` | `ForgotPassword.tsx` | `password-reset.blade.php` | ✅ Active |
+| Password Reset Completion | `POST /auth/reset-password` | `ResetPassword.tsx` | N/A (confirmation only) | ✅ Active |
+| Order Placement | `POST /orders` | `NewOrder.tsx`, `MassOrder.tsx` | `order-placed.blade.php` | ✅ Active |
+| Order Cancellation | `POST /orders/{id}/request-cancel` | `OrderDetail.tsx` | `order-action.blade.php` | ✅ Active |
+| Order Speedup | `POST /orders/{id}/request-speedup` | **MISSING** (backend ready) | `order-action.blade.php` | ⚠️ Backend Only |
+| Order Refill | `POST /orders/{id}/request-refill` | `OrderDetail.tsx` | `order-action.blade.php` | ✅ Active |
+| Admin Balance Adjustment | `POST /admin/users/{id}/adjust-balance` | `AdminUserDetail.tsx` | `balance-updated.blade.php` | ✅ Active |
+
+### Security & Reliability
+- **Rate Limiting**: 5 attempts/hour for password reset, 10/minute for login
+- **Token Security**: HMAC-SHA256 for password reset tokens with expiration
+- **Error Handling**: Graceful degradation with logging for email failures
+- **Anti-Enumeration**: Consistent responses prevent email address discovery
+
+### Configuration Requirements
+```env
+MAILJET_API_KEY=your_api_key
+MAILJET_SECRET_KEY=your_secret_key
+MAILJET_SENDER_EMAIL=hello@emazingsm.com
+MAILJET_SENDER_NAME=emazingSM
+```
+
+### Known Gaps
+- **Speedup Button**: Backend supports order speedup requests but frontend `OrderDetail.tsx` lacks the UI button
+- **Email Templates**: Could be enhanced with more branding elements and localization support
+
+---
+
+## 🧠 Future Brain Context (To be updated after every change)

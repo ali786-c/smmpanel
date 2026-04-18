@@ -57,6 +57,15 @@ export default function OrderDetail() {
     setActionLoading(false);
   };
 
+  const handleSpeedup = async () => {
+    if (!order) return;
+    setActionLoading(true);
+    const res = await apiFetch(`/orders/${order.id}/request-speedup`, { method: "POST" });
+    if (res.ok) toast.success("Speedup request submitted");
+    else toast.error("Failed to request speedup");
+    setActionLoading(false);
+  };
+
   const handleCancel = async () => {
     if (!order) return;
     setActionLoading(true);
@@ -143,6 +152,11 @@ export default function OrderDetail() {
       </div>
 
       <div className="flex gap-3 flex-wrap">
+        {!isTerminal && (
+          <Button onClick={handleSpeedup} disabled={actionLoading} variant="outline" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />} Request Speedup
+          </Button>
+        )}
         {!isTerminal && svc?.refill && (
           <Button onClick={handleRefill} disabled={actionLoading} className="gap-2 gradient-primary text-primary-foreground">
             {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />} Request Refill
