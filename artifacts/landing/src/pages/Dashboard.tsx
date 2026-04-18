@@ -248,9 +248,9 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-sidebar p-4">
+      <aside className="hidden lg:flex flex-col w-64 h-full border-r border-border bg-sidebar p-4 shrink-0">
         <Link to="/" className="flex items-center gap-2 mb-8 px-2">
           <Rocket className="w-6 h-6 text-primary" />
           <span className="text-lg font-heading font-bold">emazin<span className="text-primary">gSM</span></span>
@@ -275,7 +275,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 h-full overflow-y-auto">
         <header className="sticky top-0 z-40 glass-strong border-b border-border">
           <div className="flex items-center justify-between h-14 px-4 sm:px-6">
             <div className="flex items-center gap-3">
