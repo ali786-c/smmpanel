@@ -17,8 +17,17 @@ function run(command, cwd, env = process.env) {
 async function sync() {
     console.log('🚀 Starting cPanel Deployment Sync...');
 
-    // 1. Ensure deployment directory exists
-    if (!fs.existsSync(DEPLOY_DIR)) {
+    // 1. Ensure deployment directory exists and is clean
+    if (fs.existsSync(DEPLOY_DIR)) {
+        console.log('🧹 Cleaning old deployment files...');
+        // Only clean the root and assets, keep api/ as it's modified directly
+        const items = fs.readdirSync(DEPLOY_DIR);
+        items.forEach(item => {
+            if (item !== 'api' && item !== '.git' && item !== '.cpanel.yml' && item !== '.htaccess') {
+                fs.rmSync(path.join(DEPLOY_DIR, item), { recursive: true, force: true });
+            }
+        });
+    } else {
         fs.mkdirSync(DEPLOY_DIR, { recursive: true });
     }
 

@@ -43,7 +43,11 @@ To maintain productivity and prevent code loss, we follow these strict workflow 
 
 ## 🚀 Deployment Strategy (cPanel Assembly)
 
-To ensure compatibility with standard hostings like cPanel, we use an **Assembly Pattern**.
+To ensure compatibility with standard hostings like cPanel, we use an **Assembly Pattern**. The `cpanel-deployment/` folder is the **FINAL PRODUCTION SOURCE** that should be pushed to your server.
+
+### 📢 Deployment Rule
+- **Primary Source**: All "live" or "production-ready" files reside here after running the sync script.
+- **When to Push**: Always sync and push this folder AFTER you have finalized/stabilized your changes ("hanging the changes") to ensure the server gets the latest optimized build.
 
 ### Folder Structure: `cpanel-deployment/`
 - **Root**: Contains the production build of the React UI (from `artifacts/landing`).
