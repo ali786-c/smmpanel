@@ -47,3 +47,21 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Environment Files
+.env
+.env.*
+!.env.example
+
+# Laravel Specific
+/cpanel-deployment/api/storage/*.key
+/cpanel-deployment/api/storage/logs/*.log
+/cpanel-deployment/api/vendor/
+/artifacts/laravel-api/storage/*.key
+/artifacts/laravel-api/storage/logs/*.log
+/artifacts/laravel-api/vendor/
+
+# Node Specific
+/artifacts/landing/node_modules/
+/artifacts/landing/dist/
+/cpanel-deployment/assets/
