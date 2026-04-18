@@ -18,6 +18,9 @@ import ExitIntentPopup from "@/components/landing/ExitIntentPopup";
 import FloatingChatWidget from "@/components/landing/FloatingChatWidget";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
+import MaintenanceOverlay from "@/components/MaintenanceOverlay";
+
+const isMaintenance = true; // Set to false to disable maintenance mode
 
 const featureKeys = [
   { icon: Headphones, titleKey: "landing.features.smartCampaign", descKey: "landing.features.smartCampaignDesc" },
@@ -97,6 +100,10 @@ export default function Index() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  if (isMaintenance) {
+    return <MaintenanceOverlay />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

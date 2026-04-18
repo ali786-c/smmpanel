@@ -18,6 +18,13 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import Maintenance from "./pages/Maintenance";
+
+/**
+ * MAINTENANCE MODE TOGGLE
+ * Set to true to enable the maintenance page across the entire site.
+ */
+const MAINTENANCE_MODE = true;
 
 // Dashboard sub-pages
 import NewOrder from "./pages/dashboard/NewOrder";
@@ -63,85 +70,95 @@ import AdminAIBlogging from "./pages/admin/AdminAIBlogging";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <HelmetProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter basename={import.meta.env.BASE_URL}>
-            <Routes>
-              {/* Public */}
-              <Route path="/" element={<Index />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
+const App = () => {
+  if (MAINTENANCE_MODE) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Maintenance />
+      </QueryClientProvider>
+    );
+  }
 
-              {/* Auth */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
+              <Routes>
+                {/* Public */}
+                <Route path="/" element={<Index />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
 
-              {/* Blog */}
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
+                {/* Auth */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
-              {/* User Dashboard (protected) */}
-              <Route path="/dashboard" element={<Dashboard />}>
-                <Route path="new-order" element={<NewOrder />} />
-                <Route path="mass-order" element={<MassOrder />} />
-                <Route path="orders" element={<Orders />} />
-                <Route path="wallet" element={<WalletPage />} />
-                <Route path="tickets" element={<Tickets />} />
-                <Route path="services" element={<Services />} />
-                <Route path="updates" element={<Updates />} />
-                <Route path="api" element={<ApiDocs />} />
-                <Route path="affiliates" element={<Affiliates />} />
-                <Route path="analytics" element={<SpendingAnalytics />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="account" element={<AccountManagement />} />
-                <Route path="support" element={<Support />} />
-                <Route path="deposit" element={<AddFunds />} />
-                <Route path="payment/success" element={<PaymentSuccess />} />
-                <Route path="payment/cancel" element={<PaymentCancel />} />
-              </Route>
+                {/* Blog */}
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
 
-              {/* Admin panel (protected, admin-only) */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="users/:userId" element={<AdminUserDetail />} />
-                <Route path="orders" element={<AdminOrders />} />
-                <Route path="create-order" element={<AdminManualOrder />} />
-                <Route path="services" element={<AdminServices />} />
-                <Route path="markup" element={<AdminMarkupEditor />} />
-                <Route path="coupons" element={<AdminCoupons />} />
-                <Route path="tickets" element={<AdminTickets />} />
-                <Route path="finance" element={<AdminFinance />} />
-                <Route path="refunds" element={<AdminRefunds />} />
-                <Route path="revenue" element={<AdminRevenueExport />} />
-                <Route path="provider" element={<AdminProviderSync />} />
-                <Route path="blog" element={<AdminBlog />} />
-                <Route path="announcements" element={<AdminAnnouncements />} />
-                <Route path="mass-notify" element={<AdminMassNotification />} />
-                <Route path="affiliates" element={<AdminAffiliates />} />
-                <Route path="categories" element={<AdminCategories />} />
-                <Route path="activity" element={<AdminActivityLog />} />
-                <Route path="growth" element={<AdminGrowth />} />
-                <Route path="ai-blogging" element={<AdminAIBlogging />} />
-                <Route path="settings" element={<AdminSystemSettings />} />
-                <Route path="payments" element={<AdminFinance />} />
-              </Route>
+                {/* User Dashboard (protected) */}
+                <Route path="/dashboard" element={<Dashboard />}>
+                  <Route path="new-order" element={<NewOrder />} />
+                  <Route path="mass-order" element={<MassOrder />} />
+                  <Route path="orders" element={<Orders />} />
+                  <Route path="wallet" element={<WalletPage />} />
+                  <Route path="tickets" element={<Tickets />} />
+                  <Route path="services" element={<Services />} />
+                  <Route path="updates" element={<Updates />} />
+                  <Route path="api" element={<ApiDocs />} />
+                  <Route path="affiliates" element={<Affiliates />} />
+                  <Route path="analytics" element={<SpendingAnalytics />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="account" element={<AccountManagement />} />
+                  <Route path="support" element={<Support />} />
+                  <Route path="deposit" element={<AddFunds />} />
+                  <Route path="payment/success" element={<PaymentSuccess />} />
+                  <Route path="payment/cancel" element={<PaymentCancel />} />
+                </Route>
 
-              {/* Fallback */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <CookieConsent />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </HelmetProvider>
-  </QueryClientProvider>
-);
+                {/* Admin panel (protected, admin-only) */}
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="users/:userId" element={<AdminUserDetail />} />
+                  <Route path="orders" element={<AdminOrders />} />
+                  <Route path="create-order" element={<AdminManualOrder />} />
+                  <Route path="services" element={<AdminServices />} />
+                  <Route path="markup" element={<AdminMarkupEditor />} />
+                  <Route path="coupons" element={<AdminCoupons />} />
+                  <Route path="tickets" element={<AdminTickets />} />
+                  <Route path="finance" element={<AdminFinance />} />
+                  <Route path="refunds" element={<AdminRefunds />} />
+                  <Route path="revenue" element={<AdminRevenueExport />} />
+                  <Route path="provider" element={<AdminProviderSync />} />
+                  <Route path="blog" element={<AdminBlog />} />
+                  <Route path="announcements" element={<AdminAnnouncements />} />
+                  <Route path="mass-notify" element={<AdminMassNotification />} />
+                  <Route path="affiliates" element={<AdminAffiliates />} />
+                  <Route path="categories" element={<AdminCategories />} />
+                  <Route path="activity" element={<AdminActivityLog />} />
+                  <Route path="growth" element={<AdminGrowth />} />
+                  <Route path="ai-blogging" element={<AdminAIBlogging />} />
+                  <Route path="settings" element={<AdminSystemSettings />} />
+                  <Route path="payments" element={<AdminFinance />} />
+                </Route>
+
+                {/* Fallback */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <CookieConsent />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
