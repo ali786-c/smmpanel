@@ -64,4 +64,3 @@ Thumbs.db
 # Node Specific
 /artifacts/landing/node_modules/
 /artifacts/landing/dist/
-/cpanel-deployment/assets/
