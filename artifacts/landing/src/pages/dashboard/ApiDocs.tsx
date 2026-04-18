@@ -35,12 +35,12 @@ export default function ApiDocs() {
   };
 
   const endpoints = [
-    { title: "Service List", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "services" }], response: `[\n  { "service": 1, "name": "Instagram Followers", "type": "Default",\n    "category": "Instagram", "rate": "0.90", "min": "50", "max": "10000",\n    "refill": true, "cancel": true }\n]` },
-    { title: "Add Order", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "add" }, { key: "service", value: "Service ID" }, { key: "link", value: "Link to page" }, { key: "quantity", value: "Needed quantity" }], response: `{ "order": 23501 }` },
-    { title: "Order Status", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "status" }, { key: "order", value: "Order ID" }], response: `{ "charge": "0.27819", "start_count": "3572", "status": "Partial", "remains": "157", "currency": "USD" }` },
-    { title: "Cancel Orders", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "cancel" }, { key: "orders", value: "Comma-separated Order IDs (up to 100)" }], response: `[{ "order": 2, "cancel": 1 }]` },
-    { title: "Create Refill", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "refill" }, { key: "order", value: "Order ID" }], response: `{ "refill": "1" }` },
-    { title: "User Balance", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "balance" }], response: `{ "balance": "100.84292", "currency": "USD" }` },
+    { title: "Service List", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "services" }], response: `[\n  { "service": "101", "name": "Instagram Followers", "type": "Default",\n    "category": "Instagram", "rate": "0.90", "min": "50", "max": "10000",\n    "refill": true, "cancel": true }\n]` },
+    { title: "Add Order", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "add" }, { key: "service", value: "Service ID" }, { key: "link", value: "Link to page" }, { key: "quantity", value: "Needed quantity" }], response: `{ "order": "550e8400-e29b-41d4-a716-446655440000" }` },
+    { title: "Order Status", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "status" }, { key: "order", value: "Order ID (UUID)" }], response: `{ "charge": "0.27819", "start_count": "3572", "status": "In progress", "remains": "157", "currency": "USD" }` },
+    { title: "Cancel Orders", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "cancel" }, { key: "orders", value: "Comma-separated Order UUIDs" }], response: `[\n  { "order": "550e8400-e29b-41d4-a716-446655440000", "status": "Cancelled" }\n]` },
+    { title: "Create Refill", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "refill" }, { key: "order", value: "Order UUID" }], response: `{ "refill": "1" }` },
+    { title: "User Balance", params: [{ key: "key", value: "Your API key" }, { key: "action", value: "balance" }], response: `{ "balance": "100.84", "currency": "USD" }` },
   ];
 
   return (

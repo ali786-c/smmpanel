@@ -12,28 +12,23 @@ use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class PublicApiController extends Controller
 {
-    // Rate limiting map (simple in-memory, use Redis in production)
-    private static array $rateLimits = [];
-
     private function checkRateLimit(string $apiKey): bool
     {
-        $now = time();
-        $window = 60;
-        $limit = 100;
+        $executed = RateLimiter::attempt(
+            'api-usage:'.$apiKey,
+            $perMinute = 100,
+            function() {
+                // No-op, just counting
+            },
+            60 // Window in seconds
+        );
 
-        if (!isset(self::$rateLimits[$apiKey]) || $now > self::$rateLimits[$apiKey]['reset']) {
-            self::$rateLimits[$apiKey] = ['count' => 1, 'reset' => $now + $window];
-            return true;
-        }
-        if (self::$rateLimits[$apiKey]['count'] >= $limit) {
-            return false;
-        }
-        self::$rateLimits[$apiKey]['count']++;
-        return true;
+        return (bool) $executed;
     }
 
     public function handle(Request $request)
@@ -61,13 +56,13 @@ class PublicApiController extends Controller
 
         return match ($action) {
             'services' => $this->getServices(),
-            'add' => $this->addOrder($request, $userId),
-            'status' => $this->getOrderStatus($request, $userId),
-            'orders' => $this->getOrders($request, $userId),
-            'balance' => $this->getBalance($userId),
-            'refill' => $this->requestRefill($request, $userId),
-            'cancel' => $this->cancelOrder($request, $userId),
-            default => response()->json(['error' => "Unknown action: {$action}"], 400),
+            'add'      => $this->addOrder($request, $userId),
+            'status'   => $this->getOrderStatus($request, $userId),
+            'orders'   => $this->getOrders($request, $userId),
+            'balance'  => $this->getBalance($userId),
+            'refill'   => $this->requestRefill($request, $userId),
+            'cancel'   => $this->cancelOrder($request, $userId),
+            default    => response()->json(['error' => "Unknown action: {$action}"], 400),
         };
     }
 
@@ -75,23 +70,23 @@ class PublicApiController extends Controller
     {
         $services = Service::active()->orderBy('display_order')->get();
         return response()->json($services->map(fn($s) => [
-            'service' => $s->external_service_id,
-            'name' => $s->name,
+            'service'  => (string) $s->external_service_id,
+            'name'     => $s->name,
             'category' => $s->category,
-            'rate' => (string) $s->rate,
-            'min' => (string) $s->min_order,
-            'max' => (string) $s->max_order,
-            'type' => $s->type,
-            'refill' => $s->refill,
-            'cancel' => $s->cancel,
+            'rate'     => (string) $s->rate,
+            'min'      => (string) $s->min_order,
+            'max'      => (string) $s->max_order,
+            'type'     => $s->type,
+            'refill'   => (bool) $s->refill,
+            'cancel'   => (bool) $s->cancel,
         ]));
     }
 
     private function addOrder(Request $request, string $userId): \Illuminate\Http\JsonResponse
     {
         $serviceId = $request->input('service');
-        $link = $request->input('link', '');
-        $quantity = (int) $request->input('quantity', 0);
+        $link      = $request->input('link', '');
+        $quantity  = (int) $request->input('quantity', 0);
 
         if (!$serviceId || !$link || !$quantity) {
             return response()->json(['error' => 'Missing service, link, or quantity'], 400);
@@ -114,22 +109,29 @@ class PublicApiController extends Controller
         }
 
         $providerKey = config('services.provider.api_key');
-        $providerUrl = config('services.provider.url', 'https://justanotherpanel.com/api/v2');
+        $providerUrl = config('services.provider.api_url');
 
         DB::beginTransaction();
         try {
             $wallet->decrement('balance', $cost);
+            $wallet->touch();
 
-            // Submit to JAP provider first
-            $providerRes = Http::timeout(15)->post($providerUrl, [
+            // Submit to provider using form-params (standard for JAP APIs)
+            $providerRes = Http::timeout(20)->asForm()->post($providerUrl, [
                 'key'      => $providerKey,
                 'action'   => 'add',
                 'service'  => $service->external_service_id,
                 'link'     => $link,
                 'quantity' => $quantity,
             ]);
+
             $providerData    = $providerRes->json();
             $providerOrderId = $providerData['order'] ?? null;
+
+            if (!$providerOrderId && isset($providerData['error'])) {
+                 // If provider rejects, we could rollback or log. 
+                 // For now, if no ID, we keep it as Pending for admin review.
+            }
 
             $order = Order::create([
                 'id'                => (string) Str::uuid(),
@@ -148,7 +150,7 @@ class PublicApiController extends Controller
                 'user_id'        => $userId,
                 'type'           => 'order',
                 'amount'         => -$cost,
-                'description'    => "API Order #{$order->id}",
+                'description'    => "API Order #{$order->id} - {$service->name}",
                 'reference_id'   => $order->id,
                 'status'         => 'completed',
                 'payment_method' => 'api',
@@ -156,11 +158,10 @@ class PublicApiController extends Controller
             ]);
 
             DB::commit();
-            // Return the internal UUID so the user can query status
             return response()->json(['order' => $order->id]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Order failed'], 500);
+            return response()->json(['error' => 'The order could not be processed at this time. Please try again later.'], 500);
         }
     }
 
@@ -171,14 +172,11 @@ class PublicApiController extends Controller
             return response()->json(['error' => 'Missing order ID'], 400);
         }
 
-        // Route by ID type to avoid PostgreSQL type cast errors (UUID column vs BIGINT column)
         $order = null;
-        if (\Illuminate\Support\Str::isUuid($orderId)) {
+        if (Str::isUuid($orderId)) {
             $order = Order::where('user_id', $userId)->where('id', $orderId)->first();
         } elseif (is_numeric($orderId)) {
-            $order = Order::where('user_id', $userId)
-                ->where('external_order_id', (int) $orderId)
-                ->first();
+            $order = Order::where('user_id', $userId)->where('external_order_id', (int) $orderId)->first();
         }
 
         if (!$order) {
@@ -186,11 +184,11 @@ class PublicApiController extends Controller
         }
 
         return response()->json([
-            'charge' => (string) $order->cost,
+            'charge'      => (string) $order->cost,
             'start_count' => (string) ($order->start_count ?? 0),
-            'status' => $order->status,
-            'remains' => (string) ($order->remains ?? 0),
-            'currency' => 'USD',
+            'status'      => $order->status,
+            'remains'     => (string) ($order->remains ?? 0),
+            'currency'    => 'USD',
         ]);
     }
 
@@ -201,12 +199,12 @@ class PublicApiController extends Controller
             ->take(100)
             ->get()
             ->map(fn($o) => [
-                'id' => $o->id,
-                'charge' => (string) $o->cost,
+                'id'          => $o->id,
+                'charge'      => (string) $o->cost,
                 'start_count' => (string) ($o->start_count ?? 0),
-                'status' => $o->status,
-                'remains' => (string) ($o->remains ?? 0),
-                'currency' => 'USD',
+                'status'      => $o->status,
+                'remains'     => (string) ($o->remains ?? 0),
+                'currency'    => 'USD',
             ]);
 
         return response()->json($orders);
@@ -216,7 +214,7 @@ class PublicApiController extends Controller
     {
         $wallet = Wallet::where('user_id', $userId)->first();
         return response()->json([
-            'balance' => (string) ($wallet?->balance ?? 0),
+            'balance'  => (string) ($wallet?->balance ?? 0),
             'currency' => 'USD',
         ]);
     }
@@ -233,7 +231,6 @@ class PublicApiController extends Controller
             return response()->json(['error' => 'Order not found'], 404);
         }
 
-        // Forward to provider if configured
         $providerUrl = config('services.provider.api_url');
         $providerKey = config('services.provider.api_key');
 
@@ -246,7 +243,7 @@ class PublicApiController extends Controller
             return response()->json($res->json());
         }
 
-        return response()->json(['refill' => $orderId]);
+        return response()->json(['error' => 'Refill not supported for this order'], 400);
     }
 
     private function cancelOrder(Request $request, string $userId): \Illuminate\Http\JsonResponse
@@ -256,8 +253,8 @@ class PublicApiController extends Controller
             return response()->json(['error' => 'Missing order ID(s)'], 400);
         }
 
-        $idList = is_array($orderIds) ? $orderIds : explode(',', $orderIds);
-        $cancelled = [];
+        $idList    = is_array($orderIds) ? $orderIds : explode(',', $orderIds);
+        $results   = [];
 
         DB::beginTransaction();
         try {
@@ -267,29 +264,31 @@ class PublicApiController extends Controller
                     ->find(trim($orderId));
 
                 if ($order) {
-                    // Refund to wallet
                     Wallet::where('user_id', $userId)->increment('balance', $order->cost);
                     WalletTransaction::create([
-                        'id' => (string) Str::uuid(),
-                        'user_id' => $userId,
-                        'type' => 'refund',
-                        'amount' => $order->cost,
-                        'description' => 'Order cancelled refund',
-                        'reference_id' => $order->id,
-                        'status' => 'completed',
+                        'id'             => (string) Str::uuid(),
+                        'user_id'        => $userId,
+                        'type'           => 'refund',
+                        'amount'         => $order->cost,
+                        'description'    => "Order #{$order->id} cancelled refund",
+                        'reference_id'   => $order->id,
+                        'status'         => 'completed',
                         'payment_method' => 'system',
-                        'created_at' => now(),
+                        'created_at'     => now(),
                     ]);
 
                     $order->update(['status' => 'Cancelled']);
-                    $cancelled[] = $orderId;
+                    $results[] = ['order' => $orderId, 'status' => 'Cancelled'];
+                } else {
+                    $results[] = ['order' => $orderId, 'error' => 'Not found or cannot be cancelled'];
                 }
             }
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
+            return response()->json(['error' => 'Batch cancellation failed'], 500);
         }
 
-        return response()->json(['cancelled' => $cancelled]);
+        return response()->json($results);
     }
 }
