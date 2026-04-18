@@ -49,7 +49,7 @@ const Maintenance = () => {
           
           <p className="text-xl text-gray-400 font-light leading-relaxed mb-6">
             We are currently optimizing our servers and deploying new high-velocity growth protocols. 
-            UpgraderCX will be back online shortly with enhanced performance.
+            emazingsm.com will be back online shortly with enhanced performance.
           </p>
 
           <div className="grid grid-cols-2 gap-4 text-left">
@@ -96,7 +96,7 @@ const Maintenance = () => {
         transition={{ delay: 1 }}
         className="absolute bottom-8 text-sm font-mono text-gray-600 tracking-tighter"
       >
-        UPGRADERCX CORE ENGINE v2.4.0
+        EMAZINGSM.COM CORE ENGINE v2.4.0
       </motion.div>
     </div>
   );
