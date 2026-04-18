@@ -21,7 +21,13 @@ class TurnstileService
      */
     public function verify(?string $token, ?string $ip = null): bool
     {
-        if (empty($this->secretKey) || empty($token)) {
+        if (empty($this->secretKey)) {
+            Log::warning('Turnstile secret key is missing in config');
+            return false;
+        }
+
+        if (empty($token)) {
+            Log::debug('Turnstile token is missing in request');
             return false;
         }
 
@@ -33,11 +39,20 @@ class TurnstileService
             ]));
 
             if (!$response->successful()) {
-                Log::warning('Turnstile HTTP error', ['status' => $response->status()]);
+                Log::warning('Turnstile HTTP error', [
+                    'status' => $response->status(),
+                    'body'   => $response->body()
+                ]);
                 return false;
             }
 
             $data = $response->json();
+            if (!($data['success'] ?? false)) {
+                Log::warning('Turnstile verification failed', [
+                    'error-codes' => $data['error-codes'] ?? [],
+                    'hostname'    => $data['hostname'] ?? 'unknown'
+                ]);
+            }
             return (bool) ($data['success'] ?? false);
 
         } catch (\Exception $e) {

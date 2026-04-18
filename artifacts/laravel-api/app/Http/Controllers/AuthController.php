@@ -176,8 +176,8 @@ class AuthController extends Controller
     {
         try {
             JWTAuth::invalidate(JWTAuth::getToken());
-        } catch (\Exception $e) {
-            // Token already invalid — that's fine
+        } catch (\Throwable $e) {
+            // Token already invalid or driver issue — that's fine
         }
         return response()->json(['message' => 'Logged out successfully']);
     }

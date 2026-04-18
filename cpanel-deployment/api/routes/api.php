@@ -59,15 +59,15 @@ Route::prefix('auth')->group(function () {
     // Rate-limited + threat-checked auth endpoints
     // Register: relaxed to 10 attempts per hour for testing stability
     Route::post('/register', [AuthController::class, 'register'])
-        ->middleware(['throttle:10,60', 'threat']);
+        ->middleware(['throttle:60,60', 'threat']);
     // Login: max 10 attempts per IP per minute, + brute-force lockout middleware
     Route::post('/login', [AuthController::class, 'login'])
-        ->middleware(['throttle:10,1', 'threat', 'login.throttle']);
+        ->middleware(['throttle:60,1', 'threat', 'login.throttle']);
     // Password reset: max 5 per hour
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
-        ->middleware('throttle:5,60');
+        ->middleware('throttle:60,60');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])
-        ->middleware('throttle:5,60');
+        ->middleware('throttle:60,60');
 
     Route::middleware('auth:api')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
