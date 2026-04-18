@@ -30,7 +30,6 @@ class TicketController extends Controller
             'content'  => 'nullable|string',
             'priority' => 'nullable|in:low,normal,medium,high',
             'category' => 'nullable|string|max:100',
-            'order_id' => 'nullable|string|exists:orders,id',
         ]);
 
         $body = $validated['message'] ?? $validated['content'] ?? '';
@@ -46,7 +45,6 @@ class TicketController extends Controller
             'subject'     => $validated['subject'],
             'priority'    => $validated['priority'] ?? 'normal',
             'ticket_type' => $validated['category'] ?? 'general',
-            'order_id'    => $validated['order_id'] ?? null,
             'status'      => 'open',
         ]);
 
@@ -65,7 +63,7 @@ class TicketController extends Controller
     {
         $user = auth()->user();
         $ticket = Ticket::where('user_id', $user->id)->findOrFail($id);
-        $ticket->load(['messages', 'order:id,service_id,status,created_at', 'order.service:id,name']);
+        $ticket->load('messages');
         return response()->json($ticket);
     }
 

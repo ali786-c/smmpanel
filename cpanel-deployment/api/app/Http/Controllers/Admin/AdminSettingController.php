@@ -24,7 +24,7 @@ class AdminSettingController extends Controller
         foreach ($data['settings'] as $key => $value) {
             SystemSetting::updateOrCreate(
                 ['key' => $key],
-                ['value' => $value]
+                ['id' => (string) Str::uuid(), 'value' => $value]
             );
         }
 

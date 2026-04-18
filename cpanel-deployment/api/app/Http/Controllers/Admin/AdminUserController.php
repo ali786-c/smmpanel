@@ -10,9 +10,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
-use App\Services\MailjetService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AdminUserController extends Controller
@@ -25,8 +23,8 @@ class AdminUserController extends Controller
 
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('email', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('profile', fn($pq) => $pq->where('display_name', 'like', '%' . $request->search . '%'));
+                $q->where('email', 'ilike', '%' . $request->search . '%')
+                    ->orWhereHas('profile', fn($pq) => $pq->where('display_name', 'ilike', '%' . $request->search . '%'));
             });
         }
         if ($request->has('is_banned')) {
@@ -42,7 +40,6 @@ class AdminUserController extends Controller
         $totalSpent = $user->orders()->sum('cost');
 
         return response()->json(array_merge($user->toArray(), [
-            'roles' => $user->roles->pluck('role'),
             'total_spent' => $totalSpent,
         ]));
     }
@@ -109,26 +106,6 @@ class AdminUserController extends Controller
             'link' => '/dashboard/wallet',
             'created_at' => now(),
         ]);
-
-        try {
-            $user = User::where('id', $userId)->with('profile')->first();
-            if ($user) {
-                app(MailjetService::class)->sendTemplate(
-                    $user->email,
-                    $user->profile?->display_name ?? $user->email,
-                    'Wallet balance updated',
-                    'emails.balance-updated',
-                    [
-                        'name' => $user->profile?->display_name ?? 'Customer',
-                        'amount' => ($validated['amount'] > 0 ? '+' : '') . '$' . number_format($validated['amount'], 2),
-                        'reason' => $validated['reason'],
-                        'currentBalance' => '$' . number_format($wallet->balance, 2),
-                    ]
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Mailjet balance adjustment email failed', ['error' => $e->getMessage(), 'user_id' => $userId]);
-        }
 
         $admin = auth()->user();
         ActivityLog::create([

@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Referral extends Model
 {
-    use HasUuids;
+    protected $table = 'referrals';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'id', 'referrer_id', 'referred_id', 'commission_rate',
-        'total_earnings', 'available_balance', 'total_visits', 'status',
+        'total_earnings', 'status',
     ];
 
     protected $casts = [

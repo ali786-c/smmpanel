@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    use HasUuids;
+    protected $table = 'orders';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'id', 'user_id', 'service_id', 'external_order_id', 'provider_order_id', 'link',

@@ -5,7 +5,6 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminActivityController;
 use App\Http\Controllers\Admin\AdminAffiliateController;
-use App\Http\Controllers\Admin\AdminBlogAutomationController;
 use App\Http\Controllers\Admin\AdminAnnouncementController;
 use App\Http\Controllers\Admin\AdminBlogController;
 use App\Http\Controllers\Admin\AdminCouponController;
@@ -23,7 +22,6 @@ use App\Http\Controllers\OrderActionController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BlogController;
-use App\Http\Controllers\CouponController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
@@ -31,8 +29,6 @@ use App\Http\Controllers\PublicApiController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\WalletController;
-use App\Http\Controllers\AffiliateController;
-use App\Http\Controllers\Payment\PayHubController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Health Check ─────────────────────────────────
@@ -44,17 +40,6 @@ Route::post('/v2', [PublicApiController::class, 'handle']);
 // ─── Stripe Webhook (Public — Stripe calls this, no auth) ─────────────────
 Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook']);
 
-// ─── PayHub Webhook (Public — PayHub calls this, no auth) ─────────────────
-Route::post('/webhooks/payhub', [PayHubController::class, 'handleWebhook']);
-Route::post('/payment/payhub/webhook', [PayHubController::class, 'handleWebhook']); // Keep alias for safety
-
-// ─── Coupon Validation (Public/Auth) ──────────────
-Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
-
-// ─── Affiliate Tracking (Public) ───────────────────
-Route::get('/affiliates/track/{code}', [AffiliateController::class, 'trackVisit']);
-
-
 // ─── Landing Page (Public) ─────────────────────────
 Route::prefix('landing')->group(function () {
     Route::get('/stats',   [LandingController::class, 'stats']);
@@ -65,7 +50,7 @@ Route::prefix('landing')->group(function () {
 // ─── Auth Routes ───────────────────────────────────
 Route::prefix('auth')->group(function () {
     // Rate-limited + threat-checked auth endpoints
-    // Register: relaxed to 10 attempts per hour for testing stability
+    // Register: max 3 attempts per IP per hour
     Route::post('/register', [AuthController::class, 'register'])
         ->middleware(['throttle:60,60', 'threat']);
     // Login: max 10 attempts per IP per minute, + brute-force lockout middleware
@@ -148,8 +133,6 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/crypto/confirm',      [PaymentController::class, 'cryptoConfirm']);
         Route::post('/paypal/create-order', [PaymentController::class, 'paypalCreateOrder']);
         Route::post('/paypal/capture',      [PaymentController::class, 'paypalCapture']);
-        Route::get('/payhub/rate',          [PayHubController::class, 'getRate']);
-        Route::post('/payhub/checkout',     [PayHubController::class, 'checkout']);
     });
 
     // Tickets
@@ -164,10 +147,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
-
-    // Affiliates (User Dashboard)
-    Route::get('/affiliates/stats', [AffiliateController::class, 'stats']);
-    Route::post('/affiliates/convert', [AffiliateController::class, 'convertToCredit']);
 });
 
 // ─── Admin Routes ──────────────────────────────────
@@ -217,23 +196,12 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::patch('/tickets/{id}/status', [AdminTicketController::class, 'updateStatus']);
     Route::delete('/tickets/{id}', [AdminTicketController::class, 'destroy']);
 
-    // Blog & AI Automation
+    // Blog
     Route::get('/blog', [AdminBlogController::class, 'index']);
     Route::post('/blog', [AdminBlogController::class, 'store']);
     Route::patch('/blog/{id}', [AdminBlogController::class, 'update']);
     Route::delete('/blog/{id}', [AdminBlogController::class, 'destroy']);
     Route::post('/blog/generate-ai', [AdminBlogController::class, 'generateAI']);
-
-    Route::prefix('blog-automation')->group(function () {
-        Route::get('/config', [AdminBlogAutomationController::class, 'getConfig']);
-        Route::post('/config', [AdminBlogAutomationController::class, 'updateConfig']);
-        Route::get('/keywords', [AdminBlogAutomationController::class, 'keywords']);
-        // Use post for add/delete since it's cleaner in some admin panel contexts
-        Route::post('/keywords', [AdminBlogAutomationController::class, 'addKeyword']);
-        Route::delete('/keywords/{id}', [AdminBlogAutomationController::class, 'deleteKeyword']);
-        Route::post('/trigger', [AdminBlogAutomationController::class, 'triggerNow']);
-        Route::get('/progress', [AdminBlogAutomationController::class, 'getProgress']);
-    });
 
     // Announcements
     Route::get('/announcements', [AdminAnnouncementController::class, 'index']);

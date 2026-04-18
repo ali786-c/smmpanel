@@ -22,22 +22,6 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
-    'mailjet' => [
-        'key' => env('MAILJET_API_KEY'),
-        'secret' => env('MAILJET_SECRET_KEY'),
-        'sender_email' => env('MAILJET_SENDER_EMAIL', env('MAIL_FROM_ADDRESS', 'hello@emazingsm.com')),
-        'sender_name' => env('MAILJET_SENDER_NAME', env('MAIL_FROM_NAME', env('APP_NAME', 'emazingSM'))),
-    ],
-
-    'payhub' => [
-        'client_id'   => env('PAYHUB_CLIENT_ID'),
-        'secret'      => env('PAYHUB_CLIENT_SECRET'),
-        'url'         => env('PAYHUB_API_URL'),
-        'currency'    => 'EUR', // Default currency for the gateway
-        'success_url' => (env('FRONTEND_URL', env('APP_URL'))) . '/dashboard/payment/success',
-        'cancel_url'  => (env('FRONTEND_URL', env('APP_URL'))) . '/dashboard/payment/cancel',
-    ],
-
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
@@ -62,10 +46,6 @@ return [
 
     'turnstile' => [
         'secret_key' => env('TURNSTILE_SECRET_KEY', ''),
-    ],
-
-    'gemini' => [
-        'key' => env('GOOGLE_GEMINI_API_KEY', ''),
     ],
 
 ];

@@ -9,8 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        DB::statement('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->string('email')->unique();
             $table->string('password');
             $table->timestamp('email_verified_at')->nullable();

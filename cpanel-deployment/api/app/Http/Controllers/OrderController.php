@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Models\Service;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
-use App\Services\MailjetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -29,8 +28,8 @@ class OrderController extends Controller
         }
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('link', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('service', fn($sq) => $sq->where('name', 'like', '%' . $request->search . '%'));
+                $q->where('link', 'ilike', '%' . $request->search . '%')
+                    ->orWhereHas('service', fn($sq) => $sq->where('name', 'ilike', '%' . $request->search . '%'));
             });
         }
 
@@ -88,7 +87,7 @@ class OrderController extends Controller
 
         $wallet = Wallet::where('user_id', $user->id)->first();
         if (!$wallet || $wallet->balance < $cost) {
-            return response()->json(['error' => 'Insufficient balance. Please add credit to your wallet to place this order.'], 402);
+            return response()->json(['error' => 'Insufficient balance'], 402);
         }
 
         DB::beginTransaction();
@@ -130,12 +129,10 @@ class OrderController extends Controller
                 $coupon->increment('used_count');
             }
 
-            // Award referral commission on first order only
-            $this->awardReferralCommission($user, $cost);
-
             // Send to provider in background (non-blocking)
             $this->sendToProvider($order, $service);
 
+            // Process referral commission via DB trigger would handle this
             // Create notification
             Notification::create([
                 'id' => (string) Str::uuid(),
@@ -146,26 +143,6 @@ class OrderController extends Controller
                 'link' => "/dashboard/orders/{$orderId}",
                 'created_at' => now(),
             ]);
-
-            try {
-                app(MailjetService::class)->sendTemplate(
-                    $user->email,
-                    $user->profile?->display_name ?? $user->email,
-                    'Your order has been placed',
-                    'emails.order-placed',
-                    [
-                        'name' => $user->profile?->display_name ?? 'Customer',
-                        'orderId' => $orderId,
-                        'serviceName' => $service->name,
-                        'quantity' => $order->quantity,
-                        'totalCost' => '$' . number_format($cost, 4),
-                        'status' => $order->status,
-                        'orderUrl' => env('FRONTEND_URL', config('app.url')) . '/dashboard/orders/' . $orderId,
-                    ]
-                );
-            } catch (\Throwable $e) {
-                Log::warning('Mailjet order placed email failed', ['error' => $e->getMessage(), 'order_id' => $orderId]);
-            }
 
             DB::commit();
             return response()->json($order->load('service'), 201);
@@ -211,9 +188,9 @@ class OrderController extends Controller
         $user = auth()->user();
 
         $orders = Order::where('user_id', $user->id)
-            ->selectRaw("DATE(created_at) as date, COUNT(*) as order_count, SUM(cost) as total_spent")
+            ->selectRaw("DATE_TRUNC('day', created_at) as date, COUNT(*) as order_count, SUM(cost) as total_spent")
             ->where('created_at', '>=', now()->subDays(30))
-            ->groupByRaw("DATE(created_at)")
+            ->groupByRaw("DATE_TRUNC('day', created_at)")
             ->orderBy('date')
             ->get();
 
@@ -276,7 +253,7 @@ class OrderController extends Controller
         }
 
         if (!$wallet || $wallet->balance < $totalCost) {
-            return response()->json(['error' => 'Insufficient balance for all orders. Please add credit to your wallet to proceed.'], 402);
+            return response()->json(['error' => 'Insufficient balance for all orders. Required: $'.number_format($totalCost,4)], 402);
         }
 
         $results = [];
@@ -351,38 +328,6 @@ class OrderController extends Controller
             DB::rollBack();
             Log::error('Mass order failed: ' . $e->getMessage());
             return response()->json(['error' => 'Mass order failed. Please try again.'], 500);
-        }
-    }
-
-    private function awardReferralCommission($user, float $orderCost): void
-    {
-        try {
-            // Check if this is the user's first order
-            $orderCount = \App\Models\Order::where('user_id', $user->id)->count();
-            if ($orderCount > 1) {
-                return; // Not the first order
-            }
-
-            $referral = \App\Models\Referral::where('referred_id', $user->id)->first();
-            if (!$referral) {
-                return; // This user was not referred by anyone
-            }
-
-            // Calculate commission
-            $commissionAmount = round($orderCost * $referral->commission_rate, 4);
-
-            if ($commissionAmount > 0) {
-                $referral->increment('total_earnings', $commissionAmount);
-                $referral->increment('available_balance', $commissionAmount);
-
-                Log::info('Referral commission awarded', [
-                    'referrer_id' => $referral->referrer_id,
-                    'referred_id' => $user->id,
-                    'amount'      => $commissionAmount
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Awarding referral commission failed', ['error' => $e->getMessage()]);
         }
     }
 }

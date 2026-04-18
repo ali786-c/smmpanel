@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Coupon extends Model
 {
-    use HasUuids;
+    protected $table = 'coupons';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'id', 'code', 'discount_type', 'discount_value', 'min_order_amount',

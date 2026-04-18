@@ -30,8 +30,8 @@ class AdminOrderController extends Controller
         }
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('link', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('user', fn($uq) => $uq->where('email', 'like', '%' . $request->search . '%'));
+                $q->where('link', 'ilike', '%' . $request->search . '%')
+                    ->orWhereHas('user', fn($uq) => $uq->where('email', 'ilike', '%' . $request->search . '%'));
             });
         }
         if ($request->has('user_id')) {
@@ -83,6 +83,7 @@ class AdminOrderController extends Controller
             Wallet::where('user_id', $order->user_id)->increment('balance', $refundAmount);
 
             WalletTransaction::create([
+                'id' => (string) Str::uuid(),
                 'user_id' => $order->user_id,
                 'type' => 'refund',
                 'amount' => $refundAmount,
@@ -94,6 +95,7 @@ class AdminOrderController extends Controller
             ]);
 
             RefundLog::create([
+                'id' => (string) Str::uuid(),
                 'order_id' => $order->id,
                 'user_id' => $order->user_id,
                 'amount' => $refundAmount,
@@ -105,6 +107,7 @@ class AdminOrderController extends Controller
             $order->update(['status' => 'Refunded']);
 
             Notification::create([
+                'id' => (string) Str::uuid(),
                 'user_id' => $order->user_id,
                 'title' => 'Refund Processed',
                 'message' => "\${$refundAmount} has been refunded to your wallet.",
@@ -146,6 +149,7 @@ class AdminOrderController extends Controller
                 $wallet->decrement('balance', $cost);
 
                 WalletTransaction::create([
+                    'id' => (string) Str::uuid(),
                     'user_id' => $validated['user_id'],
                     'type' => 'order',
                     'amount' => -$cost,
@@ -157,6 +161,7 @@ class AdminOrderController extends Controller
             }
 
             $order = Order::create([
+                'id' => (string) Str::uuid(),
                 'user_id' => $validated['user_id'],
                 'service_id' => $service->id,
                 'link' => $validated['link'],
@@ -246,6 +251,7 @@ class AdminOrderController extends Controller
                         if ($refundAmount > 0) {
                             Wallet::where('user_id', $order->user_id)->increment('balance', $refundAmount);
                             WalletTransaction::create([
+                                'id' => (string) Str::uuid(),
                                 'user_id' => $order->user_id,
                                 'type' => 'refund',
                                 'amount' => $refundAmount,

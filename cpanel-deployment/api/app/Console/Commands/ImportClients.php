@@ -48,7 +48,7 @@ class ImportClients extends Command
 
         while (($row = fgetcsv($file)) !== FALSE) {
             // Mapping (adjusted for sample data)
-            // 3,beastly,realbeastly@gmail.com,,0,0.0140000,17.8960000,Active,...
+            // Example row: 3,beastly,realbeastly@gmail.com,,0,0.0140000,17.8960000,Active
             
             if (count($row) < 8) continue;
 
@@ -57,6 +57,11 @@ class ImportClients extends Command
             $balance  = (float) $row[5];
             $spent    = (float) $row[6];
             $status   = trim($row[7]);
+
+            // Skip Header or Invalid
+            if ($email === 'email' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
 
             // Skip Suspended
             if (strtolower($status) !== 'active') {

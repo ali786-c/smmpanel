@@ -127,12 +127,6 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
-        'ai_automation' => [
-            'driver' => 'single',
-            'path' => storage_path('logs/ai-blog.log'),
-            'level' => 'debug',
-        ],
-
     ],
 
 ];

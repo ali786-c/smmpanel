@@ -17,13 +17,13 @@ class BlogController extends Controller
         }
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('excerpt', 'like', '%' . $request->search . '%');
+                $q->where('title', 'ilike', '%' . $request->search . '%')
+                    ->orWhere('excerpt', 'ilike', '%' . $request->search . '%');
             });
         }
 
         $posts = $query->select([
-            'id', 'title', 'slug', 'excerpt', 'category', 'tags', 'featured_image',
+            'id', 'title', 'slug', 'excerpt', 'category', 'tags',
             'read_time', 'published_at', 'meta_title', 'meta_description',
         ])->paginate($request->get('per_page', 12));
 

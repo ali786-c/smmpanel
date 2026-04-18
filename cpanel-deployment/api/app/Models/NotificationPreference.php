@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class NotificationPreference extends Model
 {
-    use HasUuids;
+    protected $table = 'notification_preferences';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'id', 'user_id', 'order_updates', 'promotions',

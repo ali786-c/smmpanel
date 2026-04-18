@@ -60,6 +60,7 @@ class AdminGrowthController extends Controller
         Coupon::firstOrCreate(
             ['code' => $couponCode],
             [
+                'id' => (string) Str::uuid(),
                 'discount_type' => 'percentage',
                 'discount_value' => 10,
                 'is_active' => true,
@@ -106,6 +107,7 @@ class AdminGrowthController extends Controller
 
             if (!$existing) {
                 Coupon::create([
+                    'id' => (string) Str::uuid(),
                     'code' => $weekendCode,
                     'discount_type' => 'percentage',
                     'discount_value' => 15,
@@ -159,6 +161,7 @@ class AdminGrowthController extends Controller
         Coupon::firstOrCreate(
             ['code' => $couponCode],
             [
+                'id' => (string) Str::uuid(),
                 'discount_type' => 'percentage',
                 'discount_value' => 5,
                 'is_active' => true,

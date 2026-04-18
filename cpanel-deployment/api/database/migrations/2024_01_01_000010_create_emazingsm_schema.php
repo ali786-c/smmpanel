@@ -9,14 +9,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Enable pgcrypto for gen_random_bytes and gen_random_uuid
+        DB::statement('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+
         // ==================== PROFILES ====================
         Schema::create('profiles', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id')->unique();
             $table->string('display_name')->nullable();
             $table->text('avatar_url')->nullable();
             $table->string('phone')->nullable();
-            $table->string('api_key')->unique()->nullable();
+            $table->string('api_key')->unique()->nullable()->default(DB::raw("encode(gen_random_bytes(32), 'hex')"));
             $table->string('referral_code')->unique()->nullable();
             $table->boolean('is_banned')->default(false);
             $table->text('ban_reason')->nullable();
@@ -27,9 +30,9 @@ return new class extends Migration
 
         // ==================== WALLETS ====================
         Schema::create('wallets', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id')->unique();
-            $table->decimal('balance', 12, 2)->default(0);
+            $table->decimal('balance', 12, 2)->default(0)->check('balance >= 0');
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
@@ -37,7 +40,7 @@ return new class extends Migration
 
         // ==================== WALLET TRANSACTIONS ====================
         Schema::create('wallet_transactions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id');
             $table->string('type');
             $table->decimal('amount', 12, 2);
@@ -52,7 +55,7 @@ return new class extends Migration
 
         // ==================== USER ROLES ====================
         Schema::create('user_roles', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id');
             $table->string('role');
             $table->unique(['user_id', 'role']);
@@ -62,7 +65,7 @@ return new class extends Migration
 
         // ==================== SERVICES ====================
         Schema::create('services', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->integer('external_service_id')->unique();
             $table->text('name');
             $table->string('category')->default('Other');
@@ -81,7 +84,7 @@ return new class extends Migration
 
         // ==================== COUPONS ====================
         Schema::create('coupons', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->string('code')->unique();
             $table->string('discount_type')->default('percentage');
             $table->decimal('discount_value', 10, 2)->default(0);
@@ -95,7 +98,7 @@ return new class extends Migration
 
         // ==================== ORDERS ====================
         Schema::create('orders', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id');
             $table->uuid('service_id');
             $table->bigInteger('external_order_id')->nullable();
@@ -117,7 +120,7 @@ return new class extends Migration
 
         // ==================== TICKETS ====================
         Schema::create('tickets', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id');
             $table->string('subject');
             $table->string('status')->default('open');
@@ -129,7 +132,7 @@ return new class extends Migration
 
         // ==================== TICKET MESSAGES ====================
         Schema::create('ticket_messages', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('ticket_id');
             $table->string('sender');
             $table->text('content');
@@ -140,7 +143,7 @@ return new class extends Migration
 
         // ==================== REFUND LOG ====================
         Schema::create('refund_log', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('order_id')->nullable();
             $table->uuid('user_id');
             $table->decimal('amount', 10, 4);
@@ -155,16 +158,16 @@ return new class extends Migration
 
         // ==================== BLOG POSTS ====================
         Schema::create('blog_posts', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->string('title');
             $table->string('slug')->unique();
-            $table->text('content');
-            $table->text('excerpt');
+            $table->text('content')->default('');
+            $table->text('excerpt')->default('');
             $table->string('category')->default('General');
-            $table->json('tags');
+            $table->json('tags')->default('[]');
             $table->string('status')->default('draft');
-            $table->string('meta_title');
-            $table->text('meta_description');
+            $table->string('meta_title')->default('');
+            $table->text('meta_description')->default('');
             $table->integer('read_time')->default(5);
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
@@ -172,7 +175,7 @@ return new class extends Migration
 
         // ==================== REFERRALS ====================
         Schema::create('referrals', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('referrer_id');
             $table->uuid('referred_id')->unique();
             $table->decimal('commission_rate', 10, 4)->default(0.015);
@@ -186,9 +189,9 @@ return new class extends Migration
 
         // ==================== ANNOUNCEMENTS ====================
         Schema::create('announcements', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->string('title');
-            $table->text('content');
+            $table->text('content')->default('');
             $table->boolean('is_active')->default(true);
             $table->integer('priority')->default(0);
             $table->timestamps();
@@ -196,7 +199,7 @@ return new class extends Migration
 
         // ==================== NOTIFICATIONS ====================
         Schema::create('notifications', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id');
             $table->string('title');
             $table->text('message');
@@ -210,7 +213,7 @@ return new class extends Migration
 
         // ==================== FAVORITE SERVICES ====================
         Schema::create('favorite_services', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id');
             $table->uuid('service_id');
             $table->timestamps();
@@ -222,7 +225,7 @@ return new class extends Migration
 
         // ==================== NOTIFICATION PREFERENCES ====================
         Schema::create('notification_preferences', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('user_id')->unique();
             $table->boolean('order_updates')->default(true);
             $table->boolean('promotions')->default(true);
@@ -235,12 +238,12 @@ return new class extends Migration
 
         // ==================== ACTIVITY LOG ====================
         Schema::create('activity_log', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('actor_id');
             $table->string('action');
             $table->string('target_type')->default('');
             $table->uuid('target_id')->nullable();
-            $table->json('details')->nullable();
+            $table->jsonb('details')->nullable();
             $table->string('ip_address')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
@@ -249,7 +252,7 @@ return new class extends Migration
 
         // ==================== SYSTEM SETTINGS ====================
         Schema::create('system_settings', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->string('key')->unique();
             $table->text('value')->nullable();
             $table->text('description')->nullable();

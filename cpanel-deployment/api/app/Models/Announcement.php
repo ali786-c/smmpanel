@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Announcement extends Model
 {
-    use HasUuids;
+    protected $table = 'announcements';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = ['id', 'title', 'content', 'is_active', 'priority'];
 

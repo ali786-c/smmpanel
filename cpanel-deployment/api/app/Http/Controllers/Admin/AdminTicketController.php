@@ -12,7 +12,7 @@ class AdminTicketController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Ticket::with(['user:id,email', 'user.profile:user_id,display_name', 'order:id,status,created_at'])
+        $query = Ticket::with(['user:id,email', 'user.profile:user_id,display_name'])
             ->withCount('messages')
             ->orderByDesc('updated_at');
 
@@ -20,7 +20,7 @@ class AdminTicketController extends Controller
             $query->where('status', $request->status);
         }
         if ($request->has('search')) {
-            $query->where('subject', 'like', '%' . $request->search . '%');
+            $query->where('subject', 'ilike', '%' . $request->search . '%');
         }
 
         return response()->json($query->paginate($request->get('per_page', 25)));
@@ -28,7 +28,7 @@ class AdminTicketController extends Controller
 
     public function show($id)
     {
-        $ticket = Ticket::with(['user.profile', 'messages', 'order.service:id,name'])->findOrFail($id);
+        $ticket = Ticket::with(['user.profile', 'messages'])->findOrFail($id);
         // Wrap in {ticket:} so frontend can use (await r.json()).ticket
         return response()->json(['ticket' => $ticket]);
     }
@@ -43,6 +43,7 @@ class AdminTicketController extends Controller
         $ticket = Ticket::findOrFail($id);
 
         $message = TicketMessage::create([
+            'id' => (string) Str::uuid(),
             'ticket_id' => $ticket->id,
             'sender' => $validated['sender'] ?? 'admin',
             'content' => $validated['message'],

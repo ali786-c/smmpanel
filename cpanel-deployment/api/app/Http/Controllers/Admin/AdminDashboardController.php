@@ -28,12 +28,6 @@ class AdminDashboardController extends Controller
                 'service_name' => $o->service?->name,
             ]));
 
-        $platformBreakdown = Service::selectRaw('platform, count(*) as count')
-            ->groupBy('platform')
-            ->get()
-            ->pluck('count', 'platform')
-            ->toArray();
-
         return response()->json([
             'stats' => [
                 'total_users' => User::count(),
@@ -50,7 +44,6 @@ class AdminDashboardController extends Controller
                 'pending_tickets' => Ticket::where('status', '!=', 'closed')->count(),
                 'open_tickets' => Ticket::where('status', 'open')->count(),
                 'deposits_today' => WalletTransaction::whereDate('created_at', $today)->where('type', 'deposit')->sum('amount'),
-                'platform_breakdown' => $platformBreakdown,
             ],
             'recent_orders' => $recentOrders,
             'recent_users' => User::with('profile:user_id,display_name')
