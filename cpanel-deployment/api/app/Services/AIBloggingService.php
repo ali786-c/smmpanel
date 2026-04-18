@@ -83,7 +83,7 @@ class AIBloggingService
             // Step 4: SEO Metadata
             $this->updateProgress(4, "Optimizing SEO and meta tags...", 70);
             $metaDescPrompt = "Create a compelling 150-character SEO meta description for this blog titled: " . $data['title'];
-            $metaDescription = $this->gemini->generateText($metaDescPrompt, 'gemini-1.5-flash');
+            $metaDescription = $this->gemini->generateText($metaDescPrompt);
 
             // Step 5: Rendering
             $this->updateProgress(5, "Rendering premium template...", 85);

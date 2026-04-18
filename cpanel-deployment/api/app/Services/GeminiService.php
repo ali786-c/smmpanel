@@ -19,7 +19,7 @@ class GeminiService
     /**
      * Generate text using Gemini models.
      */
-    public function generateText(string $prompt, string $model = 'gemini-flash-latest'): string
+    public function generateText(string $prompt, string $model = 'gemini-2.0-flash'): string
     {
         try {
             $response = Http::withOptions(['verify' => false])
