@@ -24,7 +24,7 @@ import Maintenance from "./pages/Maintenance";
  * MAINTENANCE MODE TOGGLE
  * Set to true to enable the maintenance page across the entire site.
  */
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 // Dashboard sub-pages
 import NewOrder from "./pages/dashboard/NewOrder";

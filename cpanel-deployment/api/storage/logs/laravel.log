@@ -2469,3 +2469,4 @@ CONTEXT:  unnamed portal parameter $2 = '...' at /home/runner/workspace/artifact
 #19 C:/Users/Muhammad Aliyan/Downloads/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/artisan(16): Illuminate/Foundation/Application->handleCommand(Object(Symfony/Component/Console/Input/ArgvInput))
 #20 {main}
 "} 
+[2026-04-18 05:55:47] local.WARNING: MailjetService exception {"error":"cURL error 6: Could not resolve host: api.mailjet.com (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for https://api.mailjet.com/v3.1/send","email":"aliyantarar4@gmail.com"} 
