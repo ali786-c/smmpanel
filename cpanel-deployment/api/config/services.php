@@ -50,7 +50,7 @@ return [
 
     'payhub' => [
         'client_id' => env('PAYHUB_CLIENT_ID'),
-        'secret' => env('PAYHUB_SECRET'),
+        'secret' => env('PAYHUB_CLIENT_SECRET'),
         'url' => env('PAYHUB_API_URL', 'http://linkpaypro.online/api'),
         'success_url' => env('PAYHUB_SUCCESS_URL'),
         'cancel_url' => env('PAYHUB_CANCEL_URL'),
