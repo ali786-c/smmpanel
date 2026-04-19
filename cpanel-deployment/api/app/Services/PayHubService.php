@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Log;
 
 class PayHubService
 {
-    protected string $clientId;
-    protected string $secret;
-    protected string $apiUrl;
+    protected $clientId;
+    protected $secret;
+    protected $apiUrl;
 
     public function __construct()
     {
