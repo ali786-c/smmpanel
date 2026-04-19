@@ -96,7 +96,16 @@ export default function AdminUserDetail() {
             </div>
             <div>
               <span className="text-muted-foreground text-xs">Role</span>
-              <p className="font-medium">{roles.map((r: string) => <span key={r} className={`text-xs px-2 py-0.5 rounded-full mr-1 ${r === "admin" ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>{r}</span>)}</p>
+              <p className="font-medium">
+                {roles.map((r: any, idx: number) => {
+                  const roleName = typeof r === 'string' ? r : (r?.role ?? 'User');
+                  return (
+                    <span key={idx} className={`text-xs px-2 py-0.5 rounded-full mr-1 ${roleName === "admin" ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                      {roleName}
+                    </span>
+                  );
+                })}
+              </p>
             </div>
             <div><span className="text-muted-foreground text-xs">Joined</span><p>{new Date(user.created_at).toLocaleDateString()}</p></div>
           </div>

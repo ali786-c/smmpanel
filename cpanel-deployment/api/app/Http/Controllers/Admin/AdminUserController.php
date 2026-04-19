@@ -17,7 +17,7 @@ class AdminUserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with(['profile', 'wallet'])
+        $query = User::with(['profile', 'wallet', 'roles'])
             ->withCount('orders')
             ->orderByDesc('created_at');
 
@@ -31,7 +31,16 @@ class AdminUserController extends Controller
             $query->whereHas('profile', fn($pq) => $pq->where('is_banned', (bool) $request->is_banned));
         }
 
-        return response()->json($query->paginate($request->get('per_page', 20)));
+        $users = $query->paginate($request->get('per_page', 25));
+        
+        // Simplify roles for the frontend
+        $users->getCollection()->transform(function ($user) {
+            $data = $user->toArray();
+            $data['roles'] = $user->roles->pluck('role')->toArray();
+            return $data;
+        });
+
+        return response()->json($users);
     }
 
     public function show($userId)
@@ -39,9 +48,11 @@ class AdminUserController extends Controller
         $user = User::with(['profile', 'wallet', 'roles', 'orders' => fn($q) => $q->latest()->take(10)])->findOrFail($userId);
         $totalSpent = $user->orders()->sum('cost');
 
-        return response()->json(array_merge($user->toArray(), [
-            'total_spent' => $totalSpent,
-        ]));
+        $data = $user->toArray();
+        $data['roles'] = $user->roles->pluck('role')->toArray();
+        $data['total_spent'] = $totalSpent;
+
+        return response()->json($data);
     }
 
     public function update(Request $request, $userId)
