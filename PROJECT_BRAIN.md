@@ -108,6 +108,23 @@ A unified build and sync script that:
 - **Security**: HMAC token validation for password resets, rate limiting on sensitive endpoints
 - **Configuration**: Mailjet credentials added to `services.php` and `.env.example`
 - **Status**: [COMPLETED] Full email system deployed and integrated with both frontend and backend workflows.
+|
+### [2026-04-19] - Cloudflare Turnstile Production Migration [COMPLETED]
+- **Goal**: Transition from Global Test Keys to dedicated Production Keys for bot protection.
+- **Action**: Updated `VITE_TURNSTILE_SITE_KEY` in `artifacts/landing/.env`.
+- **Action**: Updated `TURNSTILE_SECRET_KEY` in `cpanel-deployment/api/.env`.
+- **Action**: Rebuilt frontend assets and synced to deployment folder.
+- **Critical Note**: Manual `.env` update required on server for Secret Key, as `.env` is gitignored.
+- **Status**: [COMPLETED] Captcha is fully operational.
+
+
+### Cloudflare Turnstile Bot Protection
+- **Implementation**: Uses `@marsidev/react-turnstile` on frontend and a custom `TurnstileService` on the Laravel backend.
+- **Keys**: 
+  - **Site Key**: Publicly baked into the React build assets.
+  - **Secret Key**: Stored in the server's `.env` file.
+- **Deployment Warning**: Since `.env` files are in `.gitignore`, the **Secret Key** will NOT automatically update on the server during a Git push. It must be manually updated in the cPanel File Manager (`api/.env`) if keys are rotated.
+- **Fail-safe**: The backend verification is strict; if the secret key is missing or invalid, logins/registrations will fail.
 
 ## 🧠 Future Brain Context (To be updated after every change)
 ### PayHub Implementation Details
