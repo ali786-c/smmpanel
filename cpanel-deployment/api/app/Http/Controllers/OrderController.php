@@ -28,8 +28,8 @@ class OrderController extends Controller
         }
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('link', 'ilike', '%' . $request->search . '%')
-                    ->orWhereHas('service', fn($sq) => $sq->where('name', 'ilike', '%' . $request->search . '%'));
+                $q->where('link', 'LIKE', '%' . $request->search . '%')
+                    ->orWhereHas('service', fn($sq) => $sq->where('name', 'LIKE', '%' . $request->search . '%'));
             });
         }
 
@@ -188,9 +188,9 @@ class OrderController extends Controller
         $user = auth()->user();
 
         $orders = Order::where('user_id', $user->id)
-            ->selectRaw("DATE_TRUNC('day', created_at) as date, COUNT(*) as order_count, SUM(cost) as total_spent")
+            ->selectRaw("DATE(created_at) as date, COUNT(*) as order_count, SUM(cost) as total_spent")
             ->where('created_at', '>=', now()->subDays(30))
-            ->groupByRaw("DATE_TRUNC('day', created_at)")
+            ->groupByRaw("DATE(created_at)")
             ->orderBy('date')
             ->get();
 

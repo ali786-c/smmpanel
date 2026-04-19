@@ -30,8 +30,9 @@ class AdminOrderController extends Controller
         }
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('link', 'ilike', '%' . $request->search . '%')
-                    ->orWhereHas('user', fn($uq) => $uq->where('email', 'ilike', '%' . $request->search . '%'));
+                $q->where('link', 'LIKE', '%' . $request->search . '%')
+                    ->orWhere('id', 'LIKE', '%' . $request->search . '%')
+                    ->orWhereHas('user', fn($uq) => $uq->where('email', 'LIKE', '%' . $request->search . '%'));
             });
         }
         if ($request->has('user_id')) {

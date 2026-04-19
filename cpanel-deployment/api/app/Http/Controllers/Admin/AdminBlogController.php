@@ -18,7 +18,10 @@ class AdminBlogController extends Controller
             $query->where('status', $request->status);
         }
         if ($request->has('search')) {
-            $query->where('title', 'ilike', '%' . $request->search . '%');
+            $query->where(function($q) use ($request) {
+                $q->where('title', 'LIKE', '%' . $request->search . '%')
+                  ->orWhere('content', 'LIKE', '%' . $request->search . '%');
+            });
         }
 
         return response()->json($query->paginate($request->get('per_page', 20)));

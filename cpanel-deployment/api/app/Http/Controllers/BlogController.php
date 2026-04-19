@@ -17,8 +17,8 @@ class BlogController extends Controller
         }
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('title', 'ilike', '%' . $request->search . '%')
-                    ->orWhere('excerpt', 'ilike', '%' . $request->search . '%');
+                $q->where('title', 'LIKE', '%' . $request->search . '%')
+                  ->orWhere('content', 'LIKE', '%' . $request->search . '%');
             });
         }
 

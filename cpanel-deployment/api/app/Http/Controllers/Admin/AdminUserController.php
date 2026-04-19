@@ -23,8 +23,8 @@ class AdminUserController extends Controller
 
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('email', 'ilike', '%' . $request->search . '%')
-                    ->orWhereHas('profile', fn($pq) => $pq->where('display_name', 'ilike', '%' . $request->search . '%'));
+                $q->where('email', 'LIKE', '%' . $request->search . '%')
+                    ->orWhereHas('profile', fn($pq) => $pq->where('display_name', 'LIKE', '%' . $request->search . '%'));
             });
         }
         if ($request->has('is_banned')) {

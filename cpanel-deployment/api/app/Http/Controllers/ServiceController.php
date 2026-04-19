@@ -20,7 +20,10 @@ class ServiceController extends Controller
             $query->where('platform', $request->platform);
         }
         if ($request->has('search')) {
-            $query->where('name', 'ilike', '%' . $request->search . '%');
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'LIKE', '%' . $request->search . '%')
+                  ->orWhere('category', 'LIKE', '%' . $request->search . '%');
+            });
         }
 
         $services = $query->get();

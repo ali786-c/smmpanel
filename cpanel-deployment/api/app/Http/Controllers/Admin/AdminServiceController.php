@@ -16,7 +16,10 @@ class AdminServiceController extends Controller
         $query = Service::orderBy('display_order');
 
         if ($request->has('search')) {
-            $query->where('name', 'ilike', '%' . $request->search . '%');
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'LIKE', '%' . $request->search . '%')
+                    ->orWhere('category', 'LIKE', '%' . $request->search . '%');
+            });
         }
         if ($request->has('is_active')) {
             $query->where('is_active', (bool) $request->is_active);

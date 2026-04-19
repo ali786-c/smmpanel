@@ -20,7 +20,10 @@ class AdminTicketController extends Controller
             $query->where('status', $request->status);
         }
         if ($request->has('search')) {
-            $query->where('subject', 'ilike', '%' . $request->search . '%');
+            $query->where(function($q) use ($request) {
+                $q->where('subject', 'LIKE', '%' . $request->search . '%')
+                    ->orWhereHas('user', fn($uq) => $uq->where('email', 'LIKE', '%' . $request->search . '%'));
+            });
         }
 
         return response()->json($query->paginate($request->get('per_page', 25)));
