@@ -47,17 +47,17 @@ header('Content-Type: text/html; charset=utf-8');
                     $changed = false;
                     
                     // 1. Fix Featured Image
-                    if (strpos($post->featured_image, '/storage/blog_images/') === 0 && strpos($post->featured_image, '/api/') === false) {
+                    if (strpos($post->featured_image, '/storage/blog_images/') === 0 && strpos($post->featured_image, '/api/public/') === false) {
                         $oldPath = $post->featured_image;
-                        $post->featured_image = str_replace('/storage/blog_images/', '/api/storage/blog_images/', $post->featured_image);
+                        $post->featured_image = str_replace('/storage/blog_images/', '/api/public/storage/blog_images/', $post->featured_image);
                         echo "[INFO] Updating Post ID: {$post->id}<br>";
                         echo "&nbsp;&nbsp;&nbsp;&nbsp;Image: $oldPath -> <span class='success'>{$post->featured_image}</span><br>";
                         $changed = true;
                     }
 
                     // 2. Fix Content internal links
-                    if (strpos($post->content, '/storage/blog_images/') !== false && strpos($post->content, '/api/storage/blog_images/') === false) {
-                        $post->content = str_replace('/storage/blog_images/', '/api/storage/blog_images/', $post->content);
+                    if (strpos($post->content, '/storage/blog_images/') !== false && strpos($post->content, '/api/public/storage/blog_images/') === false) {
+                        $post->content = str_replace('/storage/blog_images/', '/api/public/storage/blog_images/', $post->content);
                         echo "&nbsp;&nbsp;&nbsp;&nbsp;Content: Updated internal links.<br>";
                         $changed = true;
                     }

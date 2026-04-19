@@ -155,7 +155,7 @@ class AIBloggingService
             
             file_put_contents($storagePath . '/' . $filename, base64_decode($base64));
 
-            return '/api/storage/blog_images/' . $filename;
+            return '/api/public/storage/blog_images/' . $filename;
         } catch (Exception $e) {
             Log::channel('ai_automation')->error("Image processing failed: " . $e->getMessage());
             return '/opengraph.jpg';
