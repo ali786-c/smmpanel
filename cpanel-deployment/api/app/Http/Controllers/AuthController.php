@@ -131,6 +131,7 @@ class AuthController extends Controller
         }
 
         $user = auth()->user();
+        $user->update(['last_login_at' => now()]);
 
         if ($user->isBanned()) {
             JWTAuth::invalidate(JWTAuth::getToken());

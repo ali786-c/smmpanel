@@ -82,7 +82,7 @@ export default function AdminUsers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {["Email","Name","Balance","Orders","Role","Joined","Actions"].map(h => (
+                {["Email","Name","Balance","Orders","Role","Last Login","Joined","Actions"].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs text-muted-foreground font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -104,6 +104,7 @@ export default function AdminUsers() {
                     </span>
                     {u.is_banned && <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive">Banned</span>}
                   </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "—"}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">

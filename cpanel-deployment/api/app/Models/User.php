@@ -15,7 +15,7 @@ class User extends Authenticatable implements JWTSubject
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'email', 'password'];
+    protected $fillable = ['id', 'email', 'password', 'last_login_at'];
 
     protected static function booted(): void
     {
@@ -33,6 +33,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',
         ];
     }
 
