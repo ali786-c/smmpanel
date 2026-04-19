@@ -40,42 +40,51 @@ class PayHubController extends Controller
      */
     public function checkout(Request $request)
     {
-        $request->validate(['amount' => 'required|numeric|min:0.5']);
-        
-        $user = $request->user('api'); // Explicitly use API guard
-        
-        if (!$user) {
-            Log::warning("PayHub Checkout: Unauthorized access attempt. Headers: " . json_encode($request->headers->all()));
-            return response()->json(['error' => 'Unauthorized. Please login again.'], 401);
-        }
-
-        $usdAmount = (float) $request->amount;
-
-        $conversion = $this->currency->convertUsdToEur($usdAmount);
-        
-        $transaction = PayHubTransaction::create([
-            'id' => (string) Str::uuid(),
-            'user_id' => $user->id,
-            'amount_usd' => $usdAmount,
-            'amount_eur' => $conversion['converted_amount'],
-            'exchange_rate' => $conversion['rate_used'],
-            'status' => 'pending',
-        ]);
-
-        $payload = [
-            'order_id' => $transaction->id,
-            'amount' => $conversion['converted_amount'],
-            'currency' => 'EUR',
-            'customer_email' => $user->email,
-            'success_url' => config('services.payhub.success_url'),
-            'cancel_url' => config('services.payhub.cancel_url'),
-        ];
-
         try {
+            $request->validate(['amount' => 'required|numeric|min:0.5']);
+            
+            $user = $request->user('api');
+            if (!$user) return response()->json(['error' => 'Unauthorized'], 401);
+
+            // 1. Check Config
+            if (!config('services.payhub.client_id') || !config('services.payhub.secret')) {
+                return response()->json(['error' => 'PayHub Configuration missing in .env (CLIENT_ID or SECRET)'], 400);
+            }
+
+            $usdAmount = (float) $request->amount;
+            $conversion = $this->currency->convertUsdToEur($usdAmount);
+            
+            // 2. Create Transaction (Test table existence)
+            try {
+                $transaction = PayHubTransaction::create([
+                    'id' => (string) Str::uuid(),
+                    'user_id' => $user->id,
+                    'amount_usd' => $usdAmount,
+                    'amount_eur' => $conversion['converted_amount'],
+                    'exchange_rate' => $conversion['rate_used'],
+                    'status' => 'pending',
+                ]);
+            } catch (\Illuminate\Database\QueryException $qe) {
+                Log::error("PayHub DB Error: " . $qe->getMessage());
+                return response()->json(['error' => 'Database Table Missing: pay_hub_transactions. Please run php artisan migrate.'], 500);
+            }
+
+            // 3. Initiate API call
+            $payload = [
+                'order_id' => $transaction->id,
+                'amount' => $conversion['converted_amount'],
+                'currency' => 'EUR',
+                'customer_email' => $user->email,
+                'success_url' => config('services.payhub.success_url'),
+                'cancel_url' => config('services.payhub.cancel_url'),
+            ];
+
             $session = $this->payHub->createCheckout($payload);
             return response()->json(['checkout_url' => $session['checkout_url']]);
+
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Payment initiation failed.'], 500);
+            Log::error("PayHub Checkout Error: " . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
