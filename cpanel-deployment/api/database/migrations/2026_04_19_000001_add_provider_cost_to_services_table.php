@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->decimal('provider_cost', 16, 4)->nullable()->after('rate');
-        });
+        if (!Schema::hasColumn('services', 'provider_cost')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->decimal('provider_cost', 16, 4)->nullable()->after('rate');
+            });
+        }
     }
 
     /**
