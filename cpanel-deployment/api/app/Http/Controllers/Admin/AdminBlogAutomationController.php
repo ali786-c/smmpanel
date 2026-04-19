@@ -79,8 +79,12 @@ class AdminBlogAutomationController extends Controller
             return response()->json(['error' => 'No active keyword available'], 422);
         }
 
+        Log::channel('ai_automation')->info("Triggering AI Blog Generation for keyword: '{$keyword->keyword}' (ID: {$keyword->id})");
+
         // Run in background for immediate admin feedback and to prevent timeouts
         GenerateAIBlogJob::dispatch($keyword);
+
+        Log::channel('ai_automation')->info("Job dispatched to queue.");
 
         return response()->json(['message' => "Generation started for '{$keyword->keyword}'"]);
     }

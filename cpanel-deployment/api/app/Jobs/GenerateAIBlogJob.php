@@ -30,12 +30,12 @@ class GenerateAIBlogJob implements ShouldQueue
      */
     public function handle(AIBloggingService $bloggingService): void
     {
-        Log::info("Executing GenerateAIBlogJob for keyword: {$this->keyword->keyword}");
+        Log::channel('ai_automation')->info("Executing GenerateAIBlogJob for keyword: {$this->keyword->keyword}");
 
         try {
             $bloggingService->generateFullBlog($this->keyword);
         } catch (\Exception $e) {
-            Log::error("Failed to execute GenerateAIBlogJob: " . $e->getMessage());
+            Log::channel('ai_automation')->error("Failed to execute GenerateAIBlogJob: " . $e->getMessage());
             $this->fail($e);
         }
     }
