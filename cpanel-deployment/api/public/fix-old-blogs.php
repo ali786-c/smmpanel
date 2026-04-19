@@ -46,18 +46,34 @@ header('Content-Type: text/html; charset=utf-8');
                 foreach ($posts as $post) {
                     $changed = false;
                     
-                    // 1. Fix Featured Image
-                    if (strpos($post->featured_image, '/storage/blog_images/') === 0 && strpos($post->featured_image, '/api/public/') === false) {
+                    // 1. Fix Featured Image - specifically handle double /api/api and missing /public
+                    if (strpos($post->featured_image, '/storage/blog_images/') !== false) {
                         $oldPath = $post->featured_image;
-                        $post->featured_image = str_replace('/storage/blog_images/', '/api/public/storage/blog_images/', $post->featured_image);
+                        
+                        // Clean start: ensure we're replacing the root-relative /storage/ or existing /api/storage/
+                        // We target the core path and replace it with the verified full path
+                        if (strpos($post->featured_image, '/api/storage/') !== false) {
+                            $post->featured_image = str_replace('/api/storage/', '/api/public/storage/', $post->featured_image);
+                        } elseif (strpos($post->featured_image, '/storage/') === 0) {
+                            $post->featured_image = str_replace('/storage/', '/api/public/storage/', $post->featured_image);
+                        }
+                        
+                        // Double check for the accidental doubling we just did
+                        $post->featured_image = str_replace('/api/api/', '/api/', $post->featured_image);
+
                         echo "[INFO] Updating Post ID: {$post->id}<br>";
                         echo "&nbsp;&nbsp;&nbsp;&nbsp;Image: $oldPath -> <span class='success'>{$post->featured_image}</span><br>";
                         $changed = true;
                     }
 
-                    // 2. Fix Content internal links
-                    if (strpos($post->content, '/storage/blog_images/') !== false && strpos($post->content, '/api/public/storage/blog_images/') === false) {
-                        $post->content = str_replace('/storage/blog_images/', '/api/public/storage/blog_images/', $post->content);
+                    // 2. Fix Content internal links - same logic
+                    if (strpos($post->content, '/storage/blog_images/') !== false) {
+                        $post->content = str_replace('/api/storage/', '/api/public/storage/', $post->content);
+                        $post->content = str_replace('/api/api/', '/api/', $post->content);
+                        // If it's still missing /api/
+                        if (strpos($post->content, 'src="/storage/') !== false) {
+                            $post->content = str_replace('src="/storage/', 'src="/api/public/storage/', $post->content);
+                        }
                         echo "&nbsp;&nbsp;&nbsp;&nbsp;Content: Updated internal links.<br>";
                         $changed = true;
                     }
