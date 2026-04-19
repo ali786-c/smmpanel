@@ -12,12 +12,13 @@ class Service extends Model
 
     protected $fillable = [
         'id', 'external_service_id', 'name', 'category', 'platform',
-        'type', 'rate', 'min_order', 'max_order', 'refill', 'cancel',
+        'type', 'rate', 'provider_cost', 'min_order', 'max_order', 'refill', 'cancel',
         'health_score', 'is_active', 'display_order',
     ];
 
     protected $casts = [
         'rate' => 'decimal:4',
+        'provider_cost' => 'decimal:4',
         'refill' => 'boolean',
         'cancel' => 'boolean',
         'is_active' => 'boolean',

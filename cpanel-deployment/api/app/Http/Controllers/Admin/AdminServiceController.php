@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AdminServiceController extends Controller
@@ -104,7 +105,8 @@ class AdminServiceController extends Controller
                 $externalId = (int) ($ps['service'] ?? $ps['id'] ?? 0);
                 if (!$externalId) continue;
 
-                $rate = round(((float) ($ps['rate'] ?? 0)) * (1 + $markupPercent / 100), 4);
+                $providerRate = (float) ($ps['rate'] ?? 0);
+                $rate = round($providerRate * (1 + $markupPercent / 100), 4);
                 $sanitizedName = $this->sanitizeName($ps['name'] ?? '');
                 $sanitizedCategory = $this->sanitizeName($ps['category'] ?? 'Other');
 
@@ -115,6 +117,7 @@ class AdminServiceController extends Controller
                         'name' => $sanitizedName,
                         'category' => $sanitizedCategory,
                         'rate' => $rate,
+                        'provider_cost' => $providerRate,
                         'min_order' => (int) ($ps['min'] ?? 1),
                         'max_order' => (int) ($ps['max'] ?? 100000),
                         'type' => $ps['type'] ?? 'Default',
@@ -131,6 +134,7 @@ class AdminServiceController extends Controller
                         'platform' => $this->detectPlatform($sanitizedCategory),
                         'type' => $ps['type'] ?? 'Default',
                         'rate' => $rate,
+                        'provider_cost' => $providerRate,
                         'min_order' => (int) ($ps['min'] ?? 1),
                         'max_order' => (int) ($ps['max'] ?? 100000),
                         'refill' => (bool) ($ps['refill'] ?? false),
@@ -188,7 +192,20 @@ class AdminServiceController extends Controller
         // Store markup in system settings
         \App\Models\SystemSetting::set('markup_percent', $validated['markup_percent']);
 
-        return response()->json(['message' => 'Markup updated', 'markup_percent' => $validated['markup_percent']]);
+        // Update all prices based on provider_cost + markup
+        // Formula: rate = provider_cost * (1 + markup/100)
+        $markupMultiplier = 1 + ($validated['markup_percent'] / 100);
+        
+        // We use raw DB update for speed since there can be 5k+ services
+        $updatedCount = $query->update([
+            'rate' => DB::raw("provider_cost * $markupMultiplier")
+        ]);
+
+        return response()->json([
+            'message' => 'Markup updated and applied successfully',
+            'markup_percent' => $validated['markup_percent'],
+            'updated_count' => $updatedCount
+        ]);
     }
 
     private function sanitizeName(string $name): string

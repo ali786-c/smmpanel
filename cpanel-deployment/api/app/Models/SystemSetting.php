@@ -11,6 +11,15 @@ class SystemSetting extends Model
     protected $keyType = 'string';
 
     protected $fillable = ['id', 'key', 'value', 'description'];
+    
+    protected static function booted(): void
+    {
+        static::creating(function (self $setting) {
+            if (empty($setting->id)) {
+                $setting->id = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     public static function get(string $key, $default = null)
     {
