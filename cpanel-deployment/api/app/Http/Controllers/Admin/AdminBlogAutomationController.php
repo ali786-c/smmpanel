@@ -81,12 +81,12 @@ class AdminBlogAutomationController extends Controller
 
         Log::channel('ai_automation')->info("Triggering AI Blog Generation for keyword: '{$keyword->keyword}' (ID: {$keyword->id})");
 
-        // Run in background for immediate admin feedback and to prevent timeouts
-        GenerateAIBlogJob::dispatch($keyword);
+        // Run synchronously for cPanel environments without dedicated queue workers
+        GenerateAIBlogJob::dispatchSync($keyword);
 
-        Log::channel('ai_automation')->info("Job dispatched to queue.");
+        Log::channel('ai_automation')->info("Job completed synchronously.");
 
-        return response()->json(['message' => "Generation started for '{$keyword->keyword}'"]);
+        return response()->json(['message' => "Generation completed for '{$keyword->keyword}'"]);
     }
 
     public function getProgress()
