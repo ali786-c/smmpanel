@@ -196,8 +196,8 @@ class AdminServiceController extends Controller
         // Formula: rate = provider_cost * (1 + markup/100)
         $markupMultiplier = 1 + ($validated['markup_percent'] / 100);
         
-        // We use raw DB update for speed since there can be 5k+ services
-        $updatedCount = $query->update([
+        // We skip rows where provider_cost is NULL to avoid DB errors
+        $updatedCount = $query->whereNotNull('provider_cost')->update([
             'rate' => DB::raw("provider_cost * $markupMultiplier")
         ]);
 

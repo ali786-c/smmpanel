@@ -12,7 +12,7 @@ export default function AdminProviderSync() {
 
   const fetchInfo = async () => {
     setLoading(true);
-    const res = await apiFetch("/admin/overview");
+    const res = await apiFetch("/admin/dashboard");
     if (res.ok) {
       const d = await res.json();
       const stats = d.stats;
