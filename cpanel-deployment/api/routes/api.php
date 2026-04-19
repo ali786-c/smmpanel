@@ -38,8 +38,9 @@ Route::get('/healthz', fn() => response()->json(['status' => 'ok']));
 // ─── Public API (SMM Panel v2) ─────────────────────
 Route::post('/v2', [PublicApiController::class, 'handle']);
 
-// ─── Stripe Webhook (Public — Stripe calls this, no auth) ─────────────────
+// ─── Payment Webhooks (Public) ─────────────────
 Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook']);
+Route::post('/payment/payhub/webhook', [\App\Http\Controllers\Payment\PayHubController::class, 'handleWebhook']);
 
 // ─── Landing Page (Public) ─────────────────────────
 Route::prefix('landing')->group(function () {
@@ -126,7 +127,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
     Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
 
-    // Payment — Stripe / PayPal / Crypto
+    // Payment — Stripe / PayPal / Crypto / PayHub
     Route::prefix('payment')->group(function () {
         Route::get('/methods',              [PaymentController::class, 'methods']);
         Route::post('/stripe/checkout',     [PaymentController::class, 'stripeCheckout']);
@@ -134,6 +135,10 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/crypto/confirm',      [PaymentController::class, 'cryptoConfirm']);
         Route::post('/paypal/create-order', [PaymentController::class, 'paypalCreateOrder']);
         Route::post('/paypal/capture',      [PaymentController::class, 'paypalCapture']);
+        
+        // PayHub
+        Route::get('/payhub/rate',          [\App\Http\Controllers\Payment\PayHubController::class, 'getRate']);
+        Route::post('/payhub/checkout',     [\App\Http\Controllers\Payment\PayHubController::class, 'checkout']);
     });
 
     // Tickets
