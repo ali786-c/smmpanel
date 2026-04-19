@@ -89,9 +89,9 @@ export default function AdminServices() {
                       <td className="px-3 py-2"><Input value={editData.name ?? s.name} onChange={e => setEditData((d: any) => ({...d, name: e.target.value}))} className="h-7 text-xs w-48" /></td>
                       <td className="px-3 py-2 text-xs">{s.category}</td>
                       <td className="px-3 py-2 text-xs">{s.platform}</td>
-                      <td className="px-3 py-2"><Input type="number" step="0.0001" value={editData.price ?? s.price} onChange={e => setEditData((d: any) => ({...d, price: e.target.value}))} className="h-7 text-xs w-24" /></td>
-                      <td className="px-3 py-2"><Input type="number" value={editData.min_quantity ?? s.min_quantity} onChange={e => setEditData((d: any) => ({...d, min_quantity: e.target.value}))} className="h-7 text-xs w-20" /></td>
-                      <td className="px-3 py-2"><Input type="number" value={editData.max_quantity ?? s.max_quantity} onChange={e => setEditData((d: any) => ({...d, max_quantity: e.target.value}))} className="h-7 text-xs w-20" /></td>
+                      <td className="px-3 py-2"><Input type="number" step="0.0001" value={editData.rate ?? s.rate} onChange={e => setEditData((d: any) => ({...d, rate: e.target.value}))} className="h-7 text-xs w-24" /></td>
+                      <td className="px-3 py-2"><Input type="number" value={editData.min_order ?? s.min_order} onChange={e => setEditData((d: any) => ({...d, min_order: e.target.value}))} className="h-7 text-xs w-20" /></td>
+                      <td className="px-3 py-2"><Input type="number" value={editData.max_order ?? s.max_order} onChange={e => setEditData((d: any) => ({...d, max_order: e.target.value}))} className="h-7 text-xs w-20" /></td>
                       <td className="px-3 py-2 text-xs">{s.is_active ? "Yes" : "No"}</td>
                       <td className="px-3 py-2">
                         <div className="flex gap-1">
@@ -106,9 +106,9 @@ export default function AdminServices() {
                       <td className="px-3 py-2.5 text-xs truncate max-w-[150px]">{s.name}</td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">{s.category}</td>
                       <td className="px-3 py-2.5 text-xs">{s.platform}</td>
-                      <td className="px-3 py-2.5 text-xs font-bold text-primary">${parseFloat(s.price || 0).toFixed(4)}</td>
-                      <td className="px-3 py-2.5 text-xs">{s.min_quantity}</td>
-                      <td className="px-3 py-2.5 text-xs">{s.max_quantity}</td>
+                      <td className="px-3 py-2.5 text-xs font-bold text-primary">${parseFloat(s.rate || 0).toFixed(4)}</td>
+                      <td className="px-3 py-2.5 text-xs">{s.min_order}</td>
+                      <td className="px-3 py-2.5 text-xs">{s.max_order}</td>
                       <td className="px-3 py-2.5">
                         <button onClick={() => handleToggleActive(s.id, s.is_active)}
                           className={`w-8 h-4 rounded-full transition-colors ${s.is_active ? "bg-primary" : "bg-muted"} relative`}>
