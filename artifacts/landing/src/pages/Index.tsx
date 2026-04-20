@@ -22,7 +22,7 @@ import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 import MaintenanceOverlay from "@/components/MaintenanceOverlay";
 
-const isMaintenance = true; // Set to false to disable maintenance mode
+const isMaintenance = false; // Set to false to disable maintenance mode
 
 const featureKeys = [
   { icon: Headphones, titleKey: "landing.features.smartCampaign", descKey: "landing.features.smartCampaignDesc" },
