@@ -11,9 +11,7 @@ export default function LiveSocialProof() {
   const [stats, setStats] = useState<Stats>({ totalOrders: 191000, activeUsers: 8700, totalServices: 450 });
 
   useEffect(() => {
-    const domain = (import.meta as any).env?.VITE_REPLIT_DEV_DOMAIN || "";
-    const apiBase = domain ? `https://${domain}:8000/api/landing` : "http://localhost:8000/api/landing";
-    fetch(`${apiBase}/stats`)
+    fetch("/api/landing/stats")
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d?.data) {
