@@ -113,6 +113,9 @@ class AdminServiceController extends Controller
                 $sanitizedName = $this->sanitizeName($ps['name'] ?? '');
                 $sanitizedCategory = $this->sanitizeName($ps['category'] ?? 'Other');
 
+                // Filter out JAP categories (hide them by setting is_active to false)
+                $isActive = !Str::contains($sanitizedCategory, 'JAP', true);
+
                 $existing = Service::where('external_service_id', $externalId)->first();
 
                 if ($existing) {
@@ -126,6 +129,7 @@ class AdminServiceController extends Controller
                         'type' => $ps['type'] ?? 'Default',
                         'refill' => (bool) ($ps['refill'] ?? false),
                         'cancel' => (bool) ($ps['cancel'] ?? false),
+                        'is_active' => $isActive && $existing->is_active, // Only keep active if both JAP-safe and previously active
                     ]);
                     $updated++;
                 } else {
@@ -142,6 +146,7 @@ class AdminServiceController extends Controller
                         'max_order' => (int) ($ps['max'] ?? 100000),
                         'refill' => (bool) ($ps['refill'] ?? false),
                         'cancel' => (bool) ($ps['cancel'] ?? false),
+                        'is_active' => $isActive,
                     ]);
                     $created++;
                 }
@@ -166,9 +171,16 @@ class AdminServiceController extends Controller
         foreach ($services as $service) {
             $newName = $this->sanitizeName($service->name);
             $newCategory = $this->sanitizeName($service->category);
+            
+            // Check for JAP category filter
+            $isActive = !Str::contains($newCategory, 'JAP', true);
 
-            if ($newName !== $service->name || $newCategory !== $service->category) {
-                $service->update(['name' => $newName, 'category' => $newCategory]);
+            if ($newName !== $service->name || $newCategory !== $service->category || $service->is_active !== ($isActive && $service->is_active)) {
+                $service->update([
+                    'name' => $newName, 
+                    'category' => $newCategory,
+                    'is_active' => $isActive && $service->is_active
+                ]);
                 $updated++;
             }
         }
