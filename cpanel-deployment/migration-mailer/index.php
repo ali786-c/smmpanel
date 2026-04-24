@@ -113,6 +113,19 @@ $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated
                 </div>
             </div>
 
+            <!-- Test Email Section -->
+            <div class="glass p-6 rounded-2xl mb-6 border-dashed border-blue-500/30">
+                <h3 class="text-sm font-bold mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    Quick Test Send
+                </h3>
+                <div class="flex gap-2">
+                    <input type="email" id="test-email-input" placeholder="your-email@example.com" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <button onclick="sendTestEmail()" id="btn-test-send" class="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-xl text-sm font-bold transition">Send Test</button>
+                </div>
+                <p id="test-result" class="mt-2 text-[10px] hidden"></p>
+            </div>
+
             <div class="flex flex-wrap gap-4 mb-8">
                 <button id="btn-start" onclick="startCampaign()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-blue-900/20">Start Campaign</button>
                 <button id="btn-pause" onclick="pauseCampaign()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-3 rounded-xl transition hidden">Pause</button>
@@ -239,6 +252,45 @@ $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated
             });
             event.target.classList.add('border-blue-500', 'text-blue-400');
             renderLogs();
+        }
+
+        async function sendTestEmail() {
+            const email = document.getElementById('test-email-input').value;
+            const resEl = document.getElementById('test-result');
+            const btn = document.getElementById('btn-test-send');
+            
+            if (!email) return alert('Please enter an email');
+            
+            btn.disabled = true;
+            btn.innerText = 'Sending...';
+            resEl.classList.add('hidden');
+
+            try {
+                const formData = new FormData();
+                formData.append('email', email);
+                
+                const response = await fetch('test_send.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                resEl.classList.remove('hidden');
+                if (data.success) {
+                    resEl.innerText = data.message;
+                    resEl.className = 'mt-2 text-[10px] text-emerald-400';
+                } else {
+                    resEl.innerText = 'Error: ' + (data.error || 'Unknown');
+                    resEl.className = 'mt-2 text-[10px] text-rose-400';
+                }
+            } catch (e) {
+                resEl.classList.remove('hidden');
+                resEl.innerText = 'System Error: ' + e.message;
+                resEl.className = 'mt-2 text-[10px] text-rose-400';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Send Test';
+            }
         }
     </script>
 </body>
