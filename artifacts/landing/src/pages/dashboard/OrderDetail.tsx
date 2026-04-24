@@ -157,7 +157,7 @@ export default function OrderDetail() {
             {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />} Request Speedup
           </Button>
         )}
-        {!isTerminal && svc?.refill && (
+        {order.status === "Completed" && svc?.refill && (
           <Button onClick={handleRefill} disabled={actionLoading} className="gap-2 gradient-primary text-primary-foreground">
             {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />} Request Refill
           </Button>
