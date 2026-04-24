@@ -156,8 +156,21 @@ export default function NewOrder() {
 
   const filteredServices = useMemo(() => {
     let result = filteredByPlatform;
-    if (selectedCategory) result = result.filter(s => s.category === selectedCategory);
-    if (searchQuery) result = result.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.category.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    // If searching, ignore category filter to show all matching services in the platform
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return result.filter(s => 
+        s.name.toLowerCase().includes(q) || 
+        s.category.toLowerCase().includes(q) ||
+        s.external_service_id.toString().includes(q)
+      );
+    }
+    
+    if (selectedCategory) {
+      result = result.filter(s => s.category === selectedCategory);
+    }
+    
     return result;
   }, [filteredByPlatform, selectedCategory, searchQuery]);
 
