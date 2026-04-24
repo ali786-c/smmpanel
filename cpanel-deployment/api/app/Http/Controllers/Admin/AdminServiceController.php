@@ -225,8 +225,27 @@ class AdminServiceController extends Controller
 
     private function sanitizeName(string $name): string
     {
-        // Bypass sanitization to keep original API names as requested
-        return trim($name);
+        $replacements = [
+            ['/\[BOTS?\]/i', '[Automated]'],
+            ['/\[FAKE\]/i', ''],
+            ['/\bbot(s)?\b/i', 'automated'],
+            ['/\bfake\b/i', ''],
+            ['/\bcheap\b/i', 'value'],
+            ['/\bspam\b/i', ''],
+            ['/\bno drop\b/i', 'stable retention'],
+            ['/\binstant\b/i', 'fast'],
+            ['/\bFollowers\b/i', 'Audience Growth'],
+            ['/\bLikes\b/i', 'Engagement Boost'],
+            ['/\bViews\b/i', 'Reach Amplification'],
+            ['/\bSubscribers\b/i', 'Channel Growth'],
+        ];
+
+        $result = $name;
+        foreach ($replacements as [$pattern, $replacement]) {
+            $result = preg_replace($pattern, $replacement, $result);
+        }
+
+        return trim(preg_replace('/\s{2,}/', ' ', $result));
     }
 
     private function detectPlatform(string $category): string

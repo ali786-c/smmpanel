@@ -1,0 +1,15 @@
+<?php
+return [
+    'api_key'    => '8df603e9c0525a22a94f4deaeaf1b6db',
+    'api_secret' => '066aa729e7b32c24fc3ac2ecb89d7ea1',
+    'from_email' => 'no-reply@emazingsm.com',
+    'from_name'  => 'emazingSM',
+    
+    // CAMPAIGN SETTINGS
+    'csv_path'    => '../remaining_users.csv', // Use the clean file
+    'batch_size'  => 20,                       // Process in small batches
+    'sleep_per_email' => 9,                    // 9 seconds gap (approx 400 emails/hour)
+    
+    // SECURITY
+    'admin_password' => 'admin123',
+];
