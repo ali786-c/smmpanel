@@ -56,6 +56,12 @@ for ($i = 0; $i < $batch_size && !$file->eof(); $i++) {
 
     $res = $mailer->send($email, $email, $password);
     
+    // RETRY LOGIC: If failed, try one more time after 2 seconds
+    if (!$res['success']) {
+        sleep(2); 
+        $res = $mailer->send($email, $email, $password);
+    }
+
     $timestamp = date('Y-m-d H:i:s');
     $status = 'failed';
     $msgId = $res['message_id'] ?? 'N/A';
@@ -69,8 +75,9 @@ for ($i = 0; $i < $batch_size && !$file->eof(); $i++) {
         file_put_contents($sent_log, "[$timestamp] SUCCESS: $email | ID: $msgId | Status: $status\n", FILE_APPEND);
         $results[] = ['email' => $email, 'status' => $status, 'msg_id' => $msgId];
     } else {
+        $state['failed_count']++; // Now we count it as a real failure after retry
         $err = json_encode($res['response']);
-        file_put_contents($failed_log, "[$timestamp] FAILED: $email | Error: $err\n", FILE_APPEND);
+        file_put_contents($failed_log, "[$timestamp] FAILED (Final): $email | Error: $err\n", FILE_APPEND);
         $results[] = ['email' => $email, 'status' => 'failed', 'error' => $err];
     }
 
