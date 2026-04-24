@@ -9,6 +9,7 @@ use App\Jobs\GenerateAIBlogJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class AdminBlogAutomationController extends Controller
 {

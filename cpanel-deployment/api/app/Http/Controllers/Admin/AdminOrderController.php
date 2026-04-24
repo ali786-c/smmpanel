@@ -88,7 +88,7 @@ class AdminOrderController extends Controller
                 'user_id' => $order->user_id,
                 'type' => 'refund',
                 'amount' => $refundAmount,
-                'description' => 'Refund for order #' . $order->id . ($validated['reason'] ? ': ' . $validated['reason'] : ''),
+                'description' => 'Refund for order #' . $order->id . (!empty($validated['reason']) ? ': ' . $validated['reason'] : ''),
                 'reference_id' => $order->id,
                 'status' => 'completed',
                 'payment_method' => 'system',
@@ -198,7 +198,7 @@ class AdminOrderController extends Controller
                 'order' => $order->external_order_id,
             ]);
 
-            $data = $response->json();
+            $data = $response->json() ?? [];
 
             $order->update([
                 'status' => $data['status'] ?? $order->status,
@@ -237,7 +237,7 @@ class AdminOrderController extends Controller
                     'order' => $order->external_order_id,
                 ]);
 
-                $data = $response->json();
+                $data = $response->json() ?? [];
                 if (isset($data['status'])) {
                     $order->update([
                         'status' => $data['status'],
