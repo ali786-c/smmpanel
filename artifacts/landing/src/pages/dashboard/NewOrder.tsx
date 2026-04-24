@@ -161,6 +161,12 @@ export default function NewOrder() {
     return result;
   }, [filteredByPlatform, selectedCategory, searchQuery]);
 
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategory && !searchQuery) {
+      setSelectedCategory(categories[0]);
+    }
+  }, [categories, selectedCategory, searchQuery]);
+
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
@@ -252,41 +258,50 @@ export default function NewOrder() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input placeholder="Search services..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 bg-secondary/50" />
               </div>
-              {categories.length > 0 && (
-                <div className="flex gap-2 flex-wrap">
-                  <button onClick={() => setSelectedCategory("")} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!selectedCategory ? "gradient-primary text-primary-foreground" : "glass text-muted-foreground"}`}>All</button>
-                  {categories.map(cat => (
-                    <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedCategory === cat ? "gradient-primary text-primary-foreground" : "glass text-muted-foreground"}`}>{cat}</button>
-                  ))}
+              
+              {fetching ? (
+                <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                  <Loader2 className="w-5 h-5 animate-spin mb-2" />
+                  <p className="text-[10px] uppercase tracking-widest font-bold">Syncing {selectedPlatform} Services...</p>
                 </div>
-              )}
-              <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
-                {fetching ? (
-                  <div className="flex flex-col items-center justify-center py-10 opacity-50">
-                    <Loader2 className="w-5 h-5 animate-spin mb-2" />
-                    <p className="text-[10px] uppercase tracking-widest font-bold">Syncing {selectedPlatform} Services...</p>
-                  </div>
-                ) : filteredServices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No services found. Select a platform or clear search.</p>
-                ) : filteredServices.map(svc => (
-                  <div key={svc.id} className="relative group">
-                    <button onClick={() => setSelectedServiceId(svc.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-all ${selectedServiceId === svc.id ? "gradient-primary text-primary-foreground" : "hover:bg-secondary/50 glass"}`}>
-                      <div className="min-w-0 flex-1 pr-8">
-                        <p className="font-medium truncate">{svc.name}</p>
-                        <p className={`text-xs ${selectedServiceId === svc.id ? "opacity-70" : "text-muted-foreground"}`}>{svc.category}</p>
-                      </div>
-                      <span className={`text-xs font-semibold ml-2 shrink-0 ${selectedServiceId === svc.id ? "text-primary-foreground" : "text-primary"}`}>${Number(svc.rate).toFixed(4)}/1K</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(svc.id); }}
-                      className={`absolute right-12 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all hover:scale-110 ${favorites.has(svc.id) ? "text-warning" : "text-muted-foreground/30 hover:text-warning"}`}
+              ) : categories.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Category</Label>
+                    <select
+                      value={selectedCategory}
+                      onChange={e => {
+                        setSelectedCategory(e.target.value);
+                        setSelectedServiceId("");
+                      }}
+                      className="flex h-11 w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Star className={`w-3.5 h-3.5 ${favorites.has(svc.id) ? "fill-current" : ""}`} />
-                    </button>
+                      <option value="" disabled>Select a category</option>
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
                   </div>
-                ))}
-              </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Service</Label>
+                    <select
+                      value={selectedServiceId}
+                      onChange={e => setSelectedServiceId(e.target.value)}
+                      className="flex h-11 w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select a service</option>
+                      {filteredServices.map(svc => (
+                        <option key={svc.id} value={svc.id}>
+                          {svc.external_service_id} - {svc.name} - ${Number(svc.rate).toFixed(4)}/1K
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">No services found. Select a platform.</p>
+              )}
             </div>
 
             {selectedService && (
