@@ -10,17 +10,28 @@ if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
     die(json_encode(['error' => 'Unauthorized']));
 }
 
-$data_dir = 'data';
-if (!file_exists($data_dir)) mkdir($data_dir, 0777, true);
+$data_dir = __DIR__ . '/data';
+if (!file_exists($data_dir)) {
+    mkdir($data_dir, 0755, true);
+}
+
+// Check if writable
+if (!is_writable($data_dir)) {
+    die(json_encode(['error' => "Directory $data_dir is not writable. Please check permissions."]));
+}
 
 $progress_file = "$data_dir/progress.json";
 $sent_log = "$data_dir/sent.log";
 $failed_log = "$data_dir/failed.log";
 
 // 2. Load Progress
-$state = file_exists($progress_file) 
-    ? json_decode(file_get_contents($progress_file), true) 
-    : ['offset' => 1, 'success_count' => 0, 'failed_count' => 0, 'is_complete' => false];
+$state = ['offset' => 1, 'success_count' => 0, 'failed_count' => 0, 'is_complete' => false];
+if (file_exists($progress_file)) {
+    $saved_state = json_decode(file_get_contents($progress_file), true);
+    if (is_array($saved_state)) {
+        $state = array_merge($state, $saved_state);
+    }
+}
 
 if ($state['is_complete']) {
     die(json_encode(['status' => 'complete', 'message' => 'Campaign already finished']));
@@ -104,7 +115,7 @@ if ($file->eof()) {
     $state['is_complete'] = true;
 }
 
-file_put_contents($progress_file, json_encode($state));
+file_put_contents($progress_file, json_encode($state, JSON_PRETTY_PRINT), LOCK_EX);
 
 echo json_encode([
     'status' => $state['is_complete'] ? 'complete' : 'processing',
