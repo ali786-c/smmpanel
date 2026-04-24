@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Payment;
 use App\Http\Controllers\Controller;
 use App\Models\PayHubTransaction;
 use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use App\Services\CurrencyService;
 use App\Services\PayHubService;
 use Illuminate\Http\Request;
@@ -124,6 +125,19 @@ class PayHubController extends Controller
                 // Increment Wallet Balance
                 $wallet = Wallet::firstOrCreate(['user_id' => $transaction->user_id], ['balance' => 0]);
                 $wallet->increment('balance', $transaction->amount_usd);
+
+                // Create Transaction History Record
+                WalletTransaction::create([
+                    'id' => (string) Str::uuid(),
+                    'user_id' => $transaction->user_id,
+                    'type' => 'deposit',
+                    'amount' => $transaction->amount_usd,
+                    'description' => 'Wallet deposit via PayHub',
+                    'reference_id' => $transaction->id,
+                    'payment_method' => 'payhub',
+                    'status' => 'completed',
+                    'created_at' => now(),
+                ]);
 
                 DB::commit();
                 Log::info("PayHub Success: Wallet credited for user {$transaction->user_id}. Amount: {$transaction->amount_usd}");
