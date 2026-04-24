@@ -1,0 +1,12 @@
+{
+    "service": 8978,
+    "name": "Kick Followers [HQ] [Refill: 30D] [Max: 5K] [Start Time: 0 - 3 Hrs] [Speed: Up to 5K\/D]",
+    "type": "Default",
+    "rate": "8.75",
+    "min": 50,
+    "max": 200000,
+    "dripfeed": true,
+    "refill": false,
+    "cancel": false,
+    "category": "Kick.com"
+}
