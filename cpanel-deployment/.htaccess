@@ -6,13 +6,13 @@
     RewriteCond %{REQUEST_URI} ^/api/
     RewriteRule ^api/(.*)$ api/public/index.php [L,QSA]
 
-    # 2. Serve static files if they exist in the root
-    RewriteCond %{REQUEST_FILENAME} -f
+    # 2. Serve static files or directories if they exist
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
     # 3. Route everything else to React index.html for CSR (Client Side Routing)
-    # But ONLY if it's not a request for an asset or the API
-    RewriteCond %{REQUEST_URI} !^/assets/
+    # Exclude API and Mailer folder explicitly
     RewriteCond %{REQUEST_URI} !^/api/
     RewriteCond %{REQUEST_URI} !^/migration-mailer/
     RewriteRule ^ index.html [L]
