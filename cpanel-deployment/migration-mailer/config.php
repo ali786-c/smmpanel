@@ -1,7 +1,7 @@
 <?php
 return [
     'api_key'    => '8df603e9c0525a22a94f4deaeaf1b6db',
-    'api_secret' => '066aa729e7b32c24fc3ac2ecb89d7ea1',
+    'api_secret' => 'fd2e85a5debb7afa31101f7ca5a9b14f',
     'from_email' => 'no-reply@emazingsm.com',
     'from_name'  => 'emazingSM',
     

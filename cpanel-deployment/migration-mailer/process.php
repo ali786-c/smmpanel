@@ -103,12 +103,11 @@ for ($i = 0; $i < $batch_size && !$file->eof(); $i++) {
     $processed_in_this_batch++;
     $state['offset']++;
     $file->next();
-
-    // THROTTLE: Respect the sleep setting
-    if ($i < $batch_size - 1) {
-        sleep($config['sleep_per_email'] ?? 1);
-    }
 }
+
+// THROTTLE: Always wait after processing (important for batch_size = 1)
+$sleepTime = $config['sleep_per_email'] ?? 9;
+sleep($sleepTime);
 
 // Check if complete
 if ($file->eof()) {
