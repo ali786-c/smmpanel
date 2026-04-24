@@ -7,7 +7,7 @@ return [
     
     // CAMPAIGN SETTINGS
     'csv_path'    => '../remaining_users.csv', // Use the clean file
-    'batch_size'  => 20,                       // Process in small batches
+    'batch_size'  => 1,                        // Process 1 by 1 for real-time UI
     'sleep_per_email' => 9,                    // 9 seconds gap (approx 400 emails/hour)
     
     // SECURITY

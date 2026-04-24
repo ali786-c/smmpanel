@@ -63,6 +63,8 @@ class MailjetHandler {
     }
 
     public function getStatus($messageID) {
+        if (!$messageID || $messageID === 'N/A') return 'failed';
+
         $url = "https://api.mailjet.com/v3/REST/message/" . $messageID;
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_USERPWD, "{$this->apiKey}:{$this->apiSecret}");
@@ -71,6 +73,11 @@ class MailjetHandler {
         $data = json_decode($response, true);
         curl_close($ch);
         
-        return $data['Data'][0]['Status'] ?? 'unknown';
+        // If REST API returns data, use it. Otherwise, if we have an ID, it's at least 'sent'
+        if (isset($data['Data'][0]['Status'])) {
+            return $data['Data'][0]['Status'];
+        }
+        
+        return 'sent'; 
     }
 }

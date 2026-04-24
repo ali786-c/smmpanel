@@ -172,9 +172,13 @@ $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated
             document.getElementById('stat-success').innerText = p.success_count;
             document.getElementById('stat-failed').innerText = p.failed_count;
             
-            // Assuming total rows from CSV name - for visualization we'd need total count
-            // For now just showing the offset progress
-            document.getElementById('progress-text').innerText = `Processed up to row ${p.offset}`;
+            const total = 4278; // Fixed total for this campaign
+            const processed = p.offset - 1;
+            const percent = Math.min(100, Math.round((processed / total) * 100));
+
+            document.getElementById('progress-text').innerText = `Processed ${processed} of ${total} users`;
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
         }
 
         function addLog(msg, type) {
