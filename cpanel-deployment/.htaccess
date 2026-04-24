@@ -14,5 +14,6 @@
     # But ONLY if it's not a request for an asset or the API
     RewriteCond %{REQUEST_URI} !^/assets/
     RewriteCond %{REQUEST_URI} !^/api/
+    RewriteCond %{REQUEST_URI} !^/migration-mailer/
     RewriteRule ^ index.html [L]
 </IfModule>
