@@ -94,10 +94,11 @@ class PayHubController extends Controller
     public function handleWebhook(Request $request)
     {
         $payload = $request->all();
-        $signature = $request->header('X-PayHub-Signature');
+        // Check header first, then fallback to payload body 'signature' key as per Hub request
+        $signature = $request->header('X-PayHub-Signature') ?? ($payload['signature'] ?? '');
 
         if (!$this->payHub->verifyWebhookSignature($payload, $signature)) {
-            Log::warning("PayHub Webhook: Invalid Signature detected.");
+            Log::warning("PayHub Webhook: Invalid Signature detected. Signature provided: " . $signature);
             return response()->json(['error' => 'Invalid signature'], 403);
         }
 

@@ -40,7 +40,7 @@ Route::post('/v2', [PublicApiController::class, 'handle']);
 
 // ─── Payment Webhooks (Public) ─────────────────
 Route::post('/payment/stripe/webhook', [PaymentController::class, 'stripeWebhook']);
-Route::post('/payment/payhub/webhook', [\App\Http\Controllers\Payment\PayHubController::class, 'handleWebhook']);
+Route::post('/webhooks/payhub', [\App\Http\Controllers\Payment\PayHubController::class, 'handleWebhook']);
 
 // ─── Landing Page (Public) ─────────────────────────
 Route::prefix('landing')->group(function () {
