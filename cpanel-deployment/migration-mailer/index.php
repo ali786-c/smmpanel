@@ -64,6 +64,27 @@ $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated
                 </form>
             </div>
         <?php else: ?>
+            <script>
+                window.onload = async () => {
+                    const res = await fetch('get_state.php');
+                    const data = await res.json();
+                    if (data && !data.error) {
+                        updateUI(data);
+                        if (data.is_complete) {
+                            document.getElementById('stat-status').innerText = 'Finished';
+                            document.getElementById('btn-start').disabled = true;
+                        }
+                    }
+
+                    // Fetch recent logs
+                    const logRes = await fetch('get_logs.php');
+                    const logData = await logRes.json();
+                    if (Array.isArray(logData)) {
+                        logs = logData;
+                        renderLogs();
+                    }
+                };
+            </script>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="glass p-6 rounded-2xl">
                     <p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Success</p>
