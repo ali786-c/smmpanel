@@ -47,6 +47,9 @@ class MailjetHandler {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
         $responseArray = json_decode($response, true);
         $messageID = $responseArray['Messages'][0]['To'][0]['MessageID'] ?? null;
