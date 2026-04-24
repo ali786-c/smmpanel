@@ -95,6 +95,7 @@ $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated
             <div class="flex flex-wrap gap-4 mb-8">
                 <button id="btn-start" onclick="startCampaign()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-blue-900/20">Start Campaign</button>
                 <button id="btn-pause" onclick="pauseCampaign()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-3 rounded-xl transition hidden">Pause</button>
+                <a href="download.php" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-emerald-900/20">Download Detailed CSV</a>
                 <button onclick="if(confirm('Reset all progress?')) window.location.href='?reset=1'" class="bg-transparent border border-slate-700 hover:bg-slate-800 text-slate-400 px-8 py-3 rounded-xl transition">Reset Data</button>
             </div>
 
@@ -188,13 +189,19 @@ $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated
             
             const filtered = logs.filter(l => {
                 if (currentTab === 'all') return true;
+                if (currentTab === 'success') return ['sent', 'opened', 'delivered', 'success'].includes(l.type);
+                if (currentTab === 'failed') return ['failed', 'blocked', 'hardbounced', 'softbounced'].includes(l.type);
                 return l.type === currentTab;
             });
 
             filtered.slice(0, 100).forEach(l => {
                 const div = document.createElement('div');
-                div.className = l.type === 'success' ? 'text-emerald-400' : (l.type === 'failed' ? 'text-rose-400' : 'text-slate-400');
-                div.innerHTML = `<span class="opacity-40">[${l.time}]</span> ${l.msg}`;
+                let color = 'text-slate-400';
+                if (['sent', 'opened', 'delivered', 'success'].includes(l.type)) color = 'text-emerald-400';
+                if (['failed', 'blocked', 'hardbounced', 'softbounced'].includes(l.type)) color = 'text-rose-400';
+                
+                div.className = color;
+                div.innerHTML = `<span class="opacity-40">[${l.time}]</span> <span class="font-bold uppercase text-[10px] bg-white/10 px-1.5 py-0.5 rounded mr-2">${l.type}</span> ${l.msg}`;
                 container.appendChild(div);
             });
         }

@@ -57,16 +57,30 @@ for ($i = 0; $i < $batch_size && !$file->eof(); $i++) {
     $res = $mailer->send($email, $email, $password);
     
     $timestamp = date('Y-m-d H:i:s');
+    $status = 'failed';
+    $msgId = $res['message_id'] ?? 'N/A';
+
     if ($res['success']) {
+        // Wait 1 second for Mailjet to process status
+        sleep(1);
+        $status = $mailer->getStatus($msgId);
+        
         $state['success_count']++;
-        file_put_contents($sent_log, "[$timestamp] SUCCESS: $email\n", FILE_APPEND);
-        $results[] = ['email' => $email, 'status' => 'success'];
+        file_put_contents($sent_log, "[$timestamp] SUCCESS: $email | ID: $msgId | Status: $status\n", FILE_APPEND);
+        $results[] = ['email' => $email, 'status' => $status, 'msg_id' => $msgId];
     } else {
-        $state['failed_count']++;
         $err = json_encode($res['response']);
         file_put_contents($failed_log, "[$timestamp] FAILED: $email | Error: $err\n", FILE_APPEND);
         $results[] = ['email' => $email, 'status' => 'failed', 'error' => $err];
     }
+
+    // Save to Detailed CSV Report
+    $report_file = "$data_dir/detailed_report.csv";
+    $is_new = !file_exists($report_file);
+    $fp = fopen($report_file, 'a');
+    if ($is_new) fputcsv($fp, ['Timestamp', 'Email', 'Status', 'MessageID']);
+    fputcsv($fp, [$timestamp, $email, $status, $msgId]);
+    fclose($fp);
 
     $processed_in_this_batch++;
     $state['offset']++;

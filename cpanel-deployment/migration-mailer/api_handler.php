@@ -48,14 +48,26 @@ class MailjetHandler {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $responseArray = json_decode($response, true);
+        $messageID = $responseArray['Messages'][0]['To'][0]['MessageID'] ?? null;
 
         return [
             'success' => ($httpCode >= 200 && $httpCode < 300),
             'code' => $httpCode,
-            'response' => json_decode($response, true)
+            'message_id' => $messageID,
+            'response' => $responseArray
         ];
+    }
+
+    public function getStatus($messageID) {
+        $url = "https://api.mailjet.com/v3/REST/message/" . $messageID;
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_USERPWD, "{$this->apiKey}:{$this->apiSecret}");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        $data = json_decode($response, true);
+        curl_close($ch);
+        
+        return $data['Data'][0]['Status'] ?? 'unknown';
     }
 }
