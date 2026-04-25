@@ -44,4 +44,4 @@ Schedule::command('automation:security-monitor')->everyFifteenMinutes();
 Schedule::command('landing:increment-stats')->dailyAt('00:30');
 
 // AI Auto-Blogging: Generate 1 high-quality post daily using the LRU active keyword
-Schedule::command('blog:automation-cron')->dailyAt('05:00');
+Schedule::command('blog:automation-cron')->everyFiveMinutes();

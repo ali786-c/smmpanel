@@ -39,9 +39,16 @@ class BlogAutomationCron extends Command
             return;
         }
 
+        // PREVENTION: If we already ran today, skip. 
+        // This allows the cron to run every 5 mins without double-posting.
+        if ($config->last_run_at && $config->last_run_at->isToday()) {
+            Log::channel('ai_automation')->info("[CRON] Already ran today at {$config->last_run_at}. Skipping.");
+            return;
+        }
+
         // Logic: Pick the Least Recently Used (LRU) active keyword
         $keyword = BlogKeyword::where('status', 'active')
-            ->orderBy('last_used_at', 'asc') // Nulls first or older dates first
+            ->orderBy('last_used_at', 'asc')
             ->first();
 
         if (!$keyword) {
@@ -53,10 +60,12 @@ class BlogAutomationCron extends Command
         Log::channel('ai_automation')->info("[CRON] Decided to generate blog for keyword: [{$keyword->keyword}]");
         $this->info("Generating blog for: {$keyword->keyword}...");
 
-        // Dispatch synchronized for cPanel simplicity, or use a job if queues are ready
         $post = $aiService->generateFullBlog($keyword);
 
         if ($post) {
+            // Update last run time
+            $config->update(['last_run_at' => now()]);
+            
             Log::channel('ai_automation')->info("[CRON] SUCCESS: Automated post published [{$post->slug}]");
             $this->info("Success! Post created: {$post->title}");
         } else {
