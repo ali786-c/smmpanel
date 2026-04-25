@@ -39,13 +39,12 @@ class BlogAutomationCron extends Command
             return;
         }
 
-        // TEMPORARILY DISABLED FOR TESTING
-        /*
+        // PREVENTION: If we already ran today, skip. 
+        // This allows the cron to run every 5 mins without double-posting.
         if ($config->last_run_at && $config->last_run_at->isToday()) {
             Log::channel('ai_automation')->info("[CRON] Already ran today at {$config->last_run_at}. Skipping.");
             return;
         }
-        */
 
         // Logic: Pick the Least Recently Used (LRU) active keyword
         $keyword = BlogKeyword::where('status', 'active')
