@@ -137,7 +137,13 @@ class AIBloggingService
 
     protected function cleanJson(string $json): string
     {
-        return preg_replace('/```json|```/', '', $json);
+        $json = preg_replace('/```json|```/', '', $json);
+        $start = strpos($json, '{');
+        $end = strrpos($json, '}');
+        if ($start !== false && $end !== false) {
+            return substr($json, $start, $end - $start + 1);
+        }
+        return trim($json);
     }
 
     protected function processImage(string $prompt): string
