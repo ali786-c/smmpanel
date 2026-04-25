@@ -68,6 +68,7 @@ class AIBloggingService
             }";
 
             $jsonRaw = $this->gemini->generateText($draftPrompt);
+            echo "AI Raw Response: " . substr($jsonRaw, 0, 500) . "...\n"; // Print first 500 chars for debugging
             $data = json_decode($this->cleanJson($jsonRaw), true);
 
             if (!$data || !isset($data['title'])) {
