@@ -206,7 +206,7 @@ $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated
             document.getElementById('stat-success').innerText = p.success_count;
             document.getElementById('stat-failed').innerText = p.failed_count;
             
-            const total = 4278; // Fixed total for this campaign
+            const total = 1516; // Total from unsent_emails.csv
             const processed = p.offset - 1;
             const percent = Math.min(100, Math.round((processed / total) * 100));
 
