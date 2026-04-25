@@ -72,8 +72,10 @@ class AIBloggingService
             $data = json_decode($this->cleanJson($jsonRaw), true);
 
             if (!$data || !isset($data['title'])) {
+                echo "JSON Decode Error: " . json_last_error_msg() . "\n";
+                // echo "Cleaned JSON Sample: " . substr($this->cleanJson($jsonRaw), 0, 200) . "...\n";
                 Log::channel('ai_automation')->error("AI failed to generate valid JSON. Raw: " . $jsonRaw);
-                throw new Exception("AI failed to generate valid structured data.");
+                throw new Exception("AI failed to generate valid structured data: " . json_last_error_msg());
             }
 
             // Step 3: Image Generation
