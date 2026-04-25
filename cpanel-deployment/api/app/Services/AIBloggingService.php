@@ -22,8 +22,9 @@ class AIBloggingService
 
     /**
      * The Full 8-Step "Nano Banana" Flow Adapted for UpgraderCX.
+     * @return \App\Models\BlogPost
      */
-    public function generateFullBlog(BlogKeyword $keywordModel): array
+    public function generateFullBlog(BlogKeyword $keywordModel): \App\Models\BlogPost
     {
         $keyword = $keywordModel->keyword;
         Log::channel('ai_automation')->info("Starting AI Blog Generation for keyword: {$keyword}");
@@ -68,12 +69,9 @@ class AIBloggingService
             }";
 
             $jsonRaw = $this->gemini->generateText($draftPrompt);
-            echo "AI Raw Response: " . substr($jsonRaw, 0, 500) . "...\n"; // Print first 500 chars for debugging
             $data = json_decode($this->cleanJson($jsonRaw), true);
 
             if (!$data || !isset($data['title'])) {
-                echo "JSON Decode Error: " . json_last_error_msg() . "\n";
-                // echo "Cleaned JSON Sample: " . substr($this->cleanJson($jsonRaw), 0, 200) . "...\n";
                 Log::channel('ai_automation')->error("AI failed to generate valid JSON. Raw: " . $jsonRaw);
                 throw new Exception("AI failed to generate valid structured data: " . json_last_error_msg());
             }
@@ -114,11 +112,7 @@ class AIBloggingService
 
             $this->updateProgress(7, "Generation complete!", 100, false);
             
-            return [
-                'id' => $blogPost->id,
-                'title' => $blogPost->title,
-                'status' => 'success'
-            ];
+            return $blogPost;
 
         } catch (Exception $e) {
             Log::channel('ai_automation')->error("AIBloggingService Error: " . $e->getMessage());
