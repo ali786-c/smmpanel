@@ -61,7 +61,13 @@ class AdminDashboardController extends Controller
             ->where('status', '!=', 'Cancelled')
             ->groupBy('date')
             ->orderBy('date')
-            ->get();
+            ->get()
+            ->map(fn($r) => [
+                'date' => $r->date,
+                'revenue' => (float) $r->revenue,
+                'profit' => (float) $r->profit,
+                'orders' => (int) $r->orders,
+            ]);
 
         $byPlatform = Order::join('services', 'orders.service_id', '=', 'services.id')
             ->selectRaw('services.platform, COUNT(*) as count, SUM(orders.cost) as revenue')
