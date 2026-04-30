@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +10,43 @@ import { useTranslation } from "react-i18next";
 import { apiFetch } from "@/lib/api";
 import { loginUser } from "@/hooks/useAuth";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
+import { useEffect } from "react";
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA";
 
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [cfToken, setCfToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
+
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      setLoading(true);
+      // Fetch user data using the token to complete login
+      apiFetch("/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(data => {
+          if (data.user) {
+            loginUser(token, data.user);
+            toast.success("Logged in with Google!");
+            const roles: string[] = data.user.roles ?? [];
+            navigate(roles.includes("admin") ? "/admin" : "/dashboard");
+          }
+        })
+        .catch(() => toast.error("Social login failed"))
+        .finally(() => setLoading(false));
+    }
+    
+    const error = searchParams.get("error");
+    if (error === "auth_failed") toast.error("Google authentication failed.");
+  }, [searchParams, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +168,13 @@ export default function Login() {
                 : t("auth.signIn")}
             </Button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t("auth.orContinueWith")}</span></div>
+          </div>
+
+          <GoogleLoginButton />
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             {t("auth.noAccount")}{" "}

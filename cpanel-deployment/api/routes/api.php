@@ -69,6 +69,10 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
     });
+
+    // Google Social Auth
+    Route::get('/google', [\App\Http\Controllers\SocialAuthController::class, 'redirectToGoogle']);
+    Route::get('/google/callback', [\App\Http\Controllers\SocialAuthController::class, 'handleGoogleCallback']);
 });
 
 // ─── Public Endpoints ──────────────────────────────
