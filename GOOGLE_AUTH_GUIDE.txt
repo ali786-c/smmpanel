@@ -1,0 +1,46 @@
+GOOGLE AUTHENTICATION SETUP GUIDE
+================================
+
+To enable "Login with Google" on your platform, please follow these steps to generate your API credentials.
+
+STEP 1: Google Cloud Console
+----------------------------
+1. Go to the Google Cloud Console: https://console.cloud.google.com/
+2. Log in with your Google Account.
+3. Click on the "Select a project" dropdown at the top and click "NEW PROJECT".
+4. Give your project a name (e.g., "EmazingSM Auth") and click "CREATE".
+
+STEP 2: Configure OAuth Consent Screen
+--------------------------------------
+1. In the left sidebar, go to "APIs & Services" > "OAuth consent screen".
+2. Select "External" and click "CREATE".
+3. App Information:
+   - App name: EmazingSM
+   - User support email: (Your Email)
+   - Developer contact info: (Your Email)
+4. Click "SAVE AND CONTINUE" through the next steps (Scopes and Test Users) until you finish.
+
+STEP 3: Create Credentials
+--------------------------
+1. In the left sidebar, click "Credentials".
+2. Click "+ CREATE CREDENTIALS" at the top and select "OAuth client ID".
+3. Application type: Select "Web application".
+4. Name: Web Client 1 (Default is fine).
+5. Authorized JavaScript origins:
+   - Click "+ ADD URI" and enter: https://emazingsm.com
+6. Authorized redirect URIs:
+   - Click "+ ADD URI" and enter: https://emazingsm.com/api/auth/google/callback
+   (IMPORTANT: Ensure the link is exactly as shown above).
+7. Click "CREATE".
+
+STEP 4: Copy Your Credentials
+-----------------------------
+A window will pop up showing your "Client ID" and "Client Secret". 
+
+Please copy those details and send them to me in this format:
+
+GOOGLE_CLIENT_ID=xxxxxxxxxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_REDIRECT_URI=https://emazingsm.com/api/auth/google/callback
+
+Done! I will then apply these to your server.

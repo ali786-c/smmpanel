@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { apiFetch } from "@/lib/api";
 import { validatePassword } from "@/lib/sanitize";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA";
 
