@@ -25,12 +25,14 @@ class TicketController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'subject'  => 'required|string|max:255',
-            'message'  => 'nullable|string',
-            'content'  => 'nullable|string',
-            'priority' => 'nullable|in:low,normal,medium,high',
-            'category' => 'nullable|string|max:100',
-            'order_id' => 'nullable|exists:orders,id',
+            'subject'   => 'required|string|max:255',
+            'message'   => 'nullable|string',
+            'content'   => 'nullable|string',
+            'priority'  => 'nullable|in:low,normal,medium,high',
+            'category'  => 'nullable|string|max:100',
+            'order_id'  => 'nullable|exists:orders,id',
+            'order_ids' => 'nullable|array',
+            'order_ids.*' => 'exists:orders,id',
         ]);
 
         $body = $validated['message'] ?? $validated['content'] ?? '';
@@ -41,13 +43,14 @@ class TicketController extends Controller
         $user = auth()->user();
 
         $ticket = Ticket::create([
-            'id'          => (string) Str::uuid(),
-            'user_id'     => $user->id,
-            'order_id'    => $validated['order_id'] ?? null,
-            'subject'     => $validated['subject'],
-            'priority'    => $validated['priority'] ?? 'normal',
-            'ticket_type' => $validated['category'] ?? 'general',
-            'status'      => 'open',
+            'id'            => (string) Str::uuid(),
+            'user_id'       => $user->id,
+            'order_id'      => $validated['order_id'] ?? ($validated['order_ids'][0] ?? null),
+            'linked_orders' => $validated['order_ids'] ?? null,
+            'subject'       => $validated['subject'],
+            'priority'      => $validated['priority'] ?? 'normal',
+            'ticket_type'   => $validated['category'] ?? 'general',
+            'status'        => 'open',
         ]);
 
         TicketMessage::create([

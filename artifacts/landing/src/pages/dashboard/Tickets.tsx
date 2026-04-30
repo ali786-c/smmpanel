@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { MessageSquare, Plus, Loader2, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 
-interface Ticket { id: string; subject: string; category: string; status: string; created_at: string; order_id: string | null; }
+interface Ticket { id: string; subject: string; category: string; status: string; created_at: string; order_id: string | null; linked_orders: string[] | null; }
 interface TicketMessage { id: string; ticket_id: string; sender: string; content: string; created_at: string; }
 
 const statusStyle: Record<string, string> = {
@@ -29,7 +29,7 @@ export default function Tickets() {
   const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState("");
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
 
   useEffect(() => {
     apiFetch("/tickets?per_page=50")
@@ -51,13 +51,13 @@ export default function Tickets() {
         subject: newSubject.trim(), 
         category: newCategory, 
         message: newMessage.trim(),
-        order_id: selectedOrder || null
+        order_ids: selectedOrders
       }),
     });
     if (!res.ok) { toast.error("Failed to create ticket"); setCreating(false); return; }
     const ticket = await res.json();
     setTickets(prev => [ticket.ticket ?? ticket, ...prev]);
-    setNewSubject(""); setNewMessage(""); setShowCreate(false);
+    setNewSubject(""); setNewMessage(""); setShowCreate(false); setSelectedOrders([]);
     setCreating(false);
     toast.success("Ticket created successfully");
   };
@@ -121,16 +121,29 @@ export default function Tickets() {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Related Order (Optional)</label>
-            <select value={selectedOrder} onChange={e => setSelectedOrder(e.target.value)} className="w-full h-10 rounded-lg bg-secondary/50 border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none">
-                <option value="">No specific order</option>
-                {orders.map(o => (
-                    <option key={o.id} value={o.id}>
-                        #{String(o.id).slice(0,8)}... — {o.service?.name?.slice(0, 40) || "Order"} (${o.cost})
-                    </option>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Linked Orders ({selectedOrders.length} selected)</label>
+            <div className="glass bg-secondary/30 rounded-xl border border-border/50 max-h-48 overflow-y-auto p-2 space-y-1">
+                {orders.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No recent orders found</p>
+                ) : orders.map(o => (
+                    <label key={o.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors border border-transparent hover:border-border/30">
+                        <input 
+                            type="checkbox" 
+                            checked={selectedOrders.includes(o.id)}
+                            onChange={(e) => {
+                                if (e.target.checked) setSelectedOrders(prev => [...prev, o.id]);
+                                else setSelectedOrders(prev => prev.filter(id => id !== o.id));
+                            }}
+                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">#{String(o.id).slice(0,8)}... — {o.service?.name || "Order"}</p>
+                            <p className="text-[10px] text-muted-foreground">${o.cost} · {new Date(o.created_at).toLocaleDateString()}</p>
+                        </div>
+                    </label>
                 ))}
-            </select>
+            </div>
           </div>
 
           <div className="space-y-1">

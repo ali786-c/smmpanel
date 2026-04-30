@@ -13,7 +13,14 @@ class Ticket extends Model
     protected $fillable = [
         'id', 'user_id', 'order_id', 'subject', 'status', 'priority',
         'ticket_type', 'provider_escalated', 'provider_ticket_ref',
-        'escalated_at', 'auto_opened',
+        'escalated_at', 'auto_opened', 'linked_orders',
+    ];
+
+    protected $casts = [
+        'linked_orders' => 'array',
+        'escalated_at' => 'datetime',
+        'auto_opened' => 'boolean',
+        'provider_escalated' => 'boolean',
     ];
 
     public function user()

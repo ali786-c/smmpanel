@@ -93,7 +93,11 @@ export default function AdminTickets() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {t.user_email ?? t.user?.email ?? "User"} 
-                    {t.order_id && <span className="text-primary font-bold ml-2">· Order #{String(t.order_id).slice(0,8)}</span>}
+                    {t.linked_orders && t.linked_orders.length > 0 ? (
+                      <span className="text-primary font-bold ml-2">· {t.linked_orders.length} Orders Linked</span>
+                    ) : t.order_id && (
+                      <span className="text-primary font-bold ml-2">· Order #{String(t.order_id).slice(0,8)}</span>
+                    )}
                     · {new Date(t.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -133,6 +137,19 @@ export default function AdminTickets() {
                       ))}
                     </div>
                   ) : <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>}
+
+                  {t.linked_orders && t.linked_orders.length > 0 && (
+                    <div className="pt-3 border-t border-border/50">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Linked Orders ({t.linked_orders.length})</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {t.linked_orders.map((id: string) => (
+                                <span key={id} className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-mono border border-primary/20">
+                                    #{id.slice(0,8)}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                  )}
 
                   {t.status !== "closed" && (
                     <div className="flex gap-2 mt-2">
