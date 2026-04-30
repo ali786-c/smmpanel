@@ -20,6 +20,8 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [revenue, setRevenue] = useState(0);
+  const [profit, setProfit] = useState(0);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const perPage = 30;
@@ -32,8 +34,10 @@ export default function AdminOrders() {
     const res = await apiFetch(`/admin/orders?${params}`);
     if (res.ok) {
       const d = await res.json();
-      setOrders(d.data ?? d.orders ?? []);
-      setTotal(d.total ?? d.meta?.total ?? 0);
+      setOrders(d.data ?? []);
+      setTotal(d.total ?? 0);
+      setRevenue(d.total_revenue ?? 0);
+      setProfit(d.total_profit ?? 0);
     }
     setLoading(false);
   };
@@ -77,8 +81,6 @@ export default function AdminOrders() {
   };
 
   const pages = Math.ceil(total / perPage);
-  const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.cost || 0), 0);
-  const totalProfit = orders.reduce((s, o) => s + parseFloat(o.profit || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -98,17 +100,18 @@ export default function AdminOrders() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Shown", value: orders.length },
-          { label: "Total", value: total },
-          { label: "Revenue", value: `$${totalRevenue.toFixed(2)}` },
-          { label: "Profit", value: `$${totalProfit.toFixed(2)}` },
-        ].map(s => (
-          <div key={s.label} className="glass rounded-xl p-3">
-            <p className="text-xs text-muted-foreground">{s.label}</p>
-            <p className="text-lg font-heading font-bold">{s.value}</p>
-          </div>
-        ))}
+        <div className="glass p-3 rounded-xl border border-border/50">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total</p>
+          <p className="text-sm font-bold">{total}</p>
+        </div>
+        <div className="glass p-3 rounded-xl border border-border/50">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Revenue</p>
+          <p className="text-sm font-bold text-primary">${revenue.toFixed(2)}</p>
+        </div>
+        <div className="glass p-3 rounded-xl border border-border/50">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Profit</p>
+          <p className="text-sm font-bold text-primary">${profit.toFixed(2)}</p>
+        </div>
       </div>
 
       <div className="glass rounded-2xl overflow-hidden">

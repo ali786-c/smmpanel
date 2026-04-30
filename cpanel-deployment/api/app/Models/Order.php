@@ -17,6 +17,13 @@ class Order extends Model
         'speedup_requested_at', 'cancel_requested_at', 'cancel_request_status', 'stale_pinged_at',
     ];
 
+    protected $appends = ['profit'];
+
+    public function getProfitAttribute()
+    {
+        return (float) $this->cost - (float) ($this->provider_cost ?? 0);
+    }
+
     protected $casts = [
         'cost' => 'decimal:4',
         'provider_cost' => 'decimal:4',
