@@ -197,3 +197,10 @@ MAILJET_SENDER_NAME=emazingSM
 - **Action**: Added `retryProvider` method in `AdminOrderController.php` with a new endpoint `POST /orders/{id}/retry`.
 - **Action**: Updated `AdminOrders.tsx` to highlight JAP errors in red text under the service name.
 - **Action**: Added a "Retry" button for `Pending` orders that don't have an `external_order_id` yet.
+
+### [2026-04-30] - Admin Impersonation (Login As User) [COMPLETED]
+- **Goal**: Allow admins to securely log into any user's account with one click to troubleshoot issues from their perspective.
+- **Action**: Added `impersonate` method to `AdminUserController.php` generating a JWT token for the target user without their password.
+- **Action**: Added an impersonation `LogIn` button directly in the `AdminUsers.tsx` data table.
+- **Action**: Added a sticky red banner in `Dashboard.tsx` that appears when an admin is impersonating a user, containing a "Return to Admin" button.
+- **Security**: Impersonation attempts are recorded in the `ActivityLog`. Admins cannot impersonate other admins.

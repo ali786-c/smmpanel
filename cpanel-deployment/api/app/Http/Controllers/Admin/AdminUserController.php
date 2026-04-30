@@ -197,7 +197,7 @@ class AdminUserController extends Controller
         $targetUser = User::findOrFail($userId);
         $admin = auth()->user();
 
-        if ($targetUser->hasRole('admin') && $admin->id !== $targetUser->id) {
+        if ($targetUser->isAdmin() && $admin->id !== $targetUser->id) {
             return response()->json(['error' => 'Cannot impersonate another admin'], 403);
         }
 
