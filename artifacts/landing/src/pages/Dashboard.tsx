@@ -276,8 +276,21 @@ export default function Dashboard() {
       )}
 
       <main className="flex-1 h-full overflow-y-auto">
-        <header className="sticky top-0 z-40 glass-strong border-b border-border">
-          <div className="flex items-center justify-between h-14 px-4 sm:px-6">
+        <header className="sticky top-0 z-40 flex flex-col">
+          {localStorage.getItem("esm_admin_token") && (
+            <div className="bg-destructive/90 text-destructive-foreground px-4 py-1.5 flex flex-wrap items-center justify-center gap-3 text-sm font-medium w-full">
+              <span>You are currently impersonating <strong>{user?.email}</strong></span>
+              <Button size="sm" variant="secondary" className="h-6 text-[11px] px-3" onClick={() => {
+                const adminToken = localStorage.getItem("esm_admin_token");
+                if (adminToken) {
+                  localStorage.setItem("esm_token", adminToken);
+                  localStorage.removeItem("esm_admin_token");
+                  window.location.href = import.meta.env.BASE_URL + "admin/users";
+                }
+              }}>Return to Admin</Button>
+            </div>
+          )}
+          <div className="glass-strong border-b border-border flex items-center justify-between h-14 px-4 sm:px-6 w-full">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(true)}><Menu className="w-5 h-5" /></Button>
               <h2 className="font-heading font-semibold text-lg">

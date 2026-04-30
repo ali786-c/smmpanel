@@ -170,6 +170,7 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::delete('/users/{userId}/roles/{role}', [AdminUserController::class, 'removeRole']);
     Route::delete('/users/{userId}', [AdminUserController::class, 'deleteUser']);
     Route::post('/users/{userId}/notify', [AdminUserController::class, 'sendNotification']);
+    Route::post('/users/{userId}/impersonate', [AdminUserController::class, 'impersonate']);
 
     // Services
     Route::get('/services', [AdminServiceController::class, 'index']);

@@ -191,4 +191,37 @@ class AdminUserController extends Controller
 
         return response()->json(['message' => 'Notification sent']);
     }
+
+    public function impersonate($userId)
+    {
+        $targetUser = User::findOrFail($userId);
+        $admin = auth()->user();
+
+        if ($targetUser->hasRole('admin') && $admin->id !== $targetUser->id) {
+            return response()->json(['error' => 'Cannot impersonate another admin'], 403);
+        }
+
+        ActivityLog::create([
+            'id' => (string) Str::uuid(),
+            'actor_id' => $admin->id,
+            'action' => 'impersonate_user',
+            'target_type' => 'user',
+            'target_id' => $userId,
+            'details' => ['email' => $targetUser->email],
+            'created_at' => now(),
+        ]);
+
+        $token = \Tymon\JWTAuth\Facades\JWTAuth::fromUser($targetUser);
+        
+        $targetUser->load(['profile', 'roles']);
+        $userData = $targetUser->toArray();
+        unset($userData['password']);
+        $userData['roles'] = $targetUser->roles->pluck('role');
+        $userData['profile'] = $targetUser->profile;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $userData,
+        ]);
+    }
 }

@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Search, Loader2, Users, Ban, DollarSign, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Loader2, Users, Ban, DollarSign, Eye, ChevronLeft, ChevronRight, LogIn } from "lucide-react";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
@@ -15,6 +15,7 @@ export default function AdminUsers() {
   const [adjustId, setAdjustId] = useState<string | null>(null);
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustNote, setAdjustNote] = useState("");
+  const [impersonating, setImpersonating] = useState<string | null>(null);
   const perPage = 25;
 
   const load = async (p = 1, q = "") => {
@@ -47,6 +48,26 @@ export default function AdminUsers() {
     });
     if (res.ok) { toast.success("Balance adjusted"); setAdjustId(null); setAdjustAmount(""); setAdjustNote(""); load(page, search); }
     else { const e = await res.json(); toast.error(e.message ?? "Failed"); }
+  };
+
+  const handleImpersonate = async (userId: string) => {
+    setImpersonating(userId);
+    const res = await apiFetch(`/admin/users/${userId}/impersonate`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      const currentToken = localStorage.getItem("esm_token");
+      if (currentToken) localStorage.setItem("esm_admin_token", currentToken);
+      
+      localStorage.setItem("esm_token", data.token);
+      localStorage.setItem("esm_user", JSON.stringify(data.user));
+      
+      toast.success(`Logged in as ${data.user.email}`);
+      window.location.href = import.meta.env.BASE_URL + "dashboard";
+    } else {
+      const e = await res.json().catch(() => ({}));
+      toast.error(e.error || e.message || "Impersonation failed");
+    }
+    setImpersonating(null);
   };
 
   const pages = Math.ceil(total / perPage);
@@ -109,6 +130,9 @@ export default function AdminUsers() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <Link to={`/admin/users/${u.id}`}><Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="View"><Eye className="w-3.5 h-3.5" /></Button></Link>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-500" title="Login As" onClick={() => handleImpersonate(u.id)} disabled={impersonating === u.id}>
+                        {impersonating === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
+                      </Button>
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Adjust balance" onClick={() => setAdjustId(u.id)}><DollarSign className="w-3.5 h-3.5 text-primary" /></Button>
                       <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${u.is_banned ? "text-primary" : "text-destructive"}`}
                         title={u.is_banned ? "Unban" : "Ban"} onClick={() => handleBan(u.id, u.is_banned ?? false)}>
