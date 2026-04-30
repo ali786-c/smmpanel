@@ -40,8 +40,7 @@ class ProviderEscalation extends Command
         $staleOrders = Order::with(['user.profile', 'service'])
             ->whereIn('status', ['Pending', 'In progress', 'Processing'])
             ->where('created_at', '<=', now()->subHours(self::HOURS_FIRST_PING))
-            ->where('created_at', '>=', now()->subHours(self::HOURS_URGENT_PING))
-            ->whereNull('stale_pinged_at')
+            ->where('escalation_stage', 0)
             ->get();
 
         foreach ($staleOrders as $order) {
@@ -58,8 +57,7 @@ class ProviderEscalation extends Command
         $urgentOrders = Order::with(['user.profile', 'service'])
             ->whereIn('status', ['Pending', 'In progress', 'Processing'])
             ->where('created_at', '<=', now()->subHours(self::HOURS_URGENT_PING))
-            ->where('created_at', '>=', now()->subHours(self::HOURS_CRITICAL))
-            ->whereNotNull('stale_pinged_at') // already had first ping
+            ->where('escalation_stage', 1)
             ->get();
 
         foreach ($urgentOrders as $order) {
@@ -75,6 +73,7 @@ class ProviderEscalation extends Command
         $criticalOrders = Order::with(['user.profile', 'service'])
             ->whereIn('status', ['Pending', 'In progress', 'Processing'])
             ->where('created_at', '<=', now()->subHours(self::HOURS_CRITICAL))
+            ->where('escalation_stage', 2)
             ->get();
 
         foreach ($criticalOrders as $order) {
@@ -158,7 +157,7 @@ class ProviderEscalation extends Command
         ]);
 
         // Mark order as pinged
-        $order->update(['stale_pinged_at' => now()]);
+        $order->update(['stale_pinged_at' => now(), 'escalation_stage' => 1]);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -181,7 +180,7 @@ class ProviderEscalation extends Command
             ->where('ticket_type', 'speedup')
             ->first();
 
-        $urgentNote = "**Urgent Update (Day 3):** We have sent a second escalation request to our provider for your delayed order. Your order for {$serviceName} has been waiting " . now()->diffInHours($order->created_at) . " hours. If not resolved within 24 hours, a full refund will be automatically processed.";
+        $urgentNote = "**Urgent Update (Day 3):** We have sent a second escalation request to our provider for your delayed order. Your order for {$serviceName} has been waiting " . now()->diffInHours($order->created_at) . " hours. Our team is now monitoring this order closely for cancellation eligibility.";
 
         if ($ticket) {
             TicketMessage::create([
@@ -218,27 +217,23 @@ class ProviderEscalation extends Command
             'id'         => (string) Str::uuid(),
             'user_id'    => $order->user_id,
             'title'      => 'Urgent: Order Still Pending',
-            'message'    => "Your order for {$serviceName} is now 3+ days old. We have urgently escalated to our provider. If unresolved in 24 hours, you will receive a full refund.",
+            'message'    => "Your order for {$serviceName} is now 3+ days old. We have urgently escalated to our provider. We are monitoring it for possible cancellation and refund.",
             'type'       => 'error',
             'link'       => "/dashboard/tickets/{$ticket->id}",
             'read'       => false,
             'created_at' => now(),
         ]);
 
-        $order->update(['stale_pinged_at' => now()]);
+        $order->update(['stale_pinged_at' => now(), 'escalation_stage' => 2]);
     }
 
     // ──────────────────────────────────────────────────────────────────────
     // CRITICAL (4+ days)
     // ──────────────────────────────────────────────────────────────────────
-    private function criticalEscalation(Order $order): void
-    {
-        $serviceName = $order->service->name ?? 'Unknown Service';
-
         $ticket = Ticket::where('order_id', $order->id)->where('auto_opened', true)->first();
-
-        $criticalNote = "**CRITICAL – Day 4+:** This order has been stuck for " . now()->diffInDays($order->created_at) . " days. This has been flagged for immediate admin review. An automatic refund may be issued.";
-
+ 
+        $criticalNote = "**CRITICAL – Day 4+:** This order has been stuck for " . now()->diffInDays($order->created_at) . " days. We are now attempting an automatic cancellation via our provider API. If successful, you will receive an immediate refund.";
+ 
         if ($ticket) {
             TicketMessage::create([
                 'id'         => (string) Str::uuid(),
@@ -249,17 +244,54 @@ class ProviderEscalation extends Command
             ]);
             $ticket->update(['priority' => 'urgent', 'status' => 'open']);
         }
-
+ 
+        // Attempt API cancellation
+        $justPanel = app(JustPanelService::class);
+        $providerOrderId = $order->provider_order_id ?? $order->external_order_id;
+        
+        if ($providerOrderId && $justPanel->isConfigured()) {
+            $cancelResult = $justPanel->cancelOrder($providerOrderId);
+            
+            if ($cancelResult['success']) {
+                // Refund will be picked up by RefundMonitor since status becomes Cancelled
+                $order->update([
+                    'status' => 'Cancelled',
+                    'escalation_stage' => 3,
+                    'stale_pinged_at' => now()
+                ]);
+                
+                TicketMessage::create([
+                    'id'         => (string) Str::uuid(),
+                    'ticket_id'  => $ticket->id,
+                    'sender'     => 'system',
+                    'content'    => "**AUTO-CANCELLED:** Our provider has accepted the cancellation request. A refund will be credited to your wallet shortly.",
+                    'created_at' => now(),
+                ]);
+                
+                return;
+            } else {
+                TicketMessage::create([
+                    'id'         => (string) Str::uuid(),
+                    'ticket_id'  => $ticket->id,
+                    'sender'     => 'system',
+                    'content'    => "**CANCELLATION FAILED:** We attempted to cancel this order via API, but the provider responded: \"" . ($cancelResult['error'] ?? 'Order cannot be cancelled at this stage') . "\". This ticket has been flagged for manual admin intervention.",
+                    'created_at' => now(),
+                ]);
+            }
+        }
+ 
         Notification::create([
             'id'         => (string) Str::uuid(),
             'user_id'    => $order->user_id,
-            'title'      => 'Critical Delay – Refund Pending',
-            'message'    => "Your order for {$serviceName} is critically delayed (4+ days). Our admin team has been alerted and a refund decision will be made shortly.",
+            'title'      => 'Critical Delay – Manual Review',
+            'message'    => "Your order for {$serviceName} is critically delayed. Automatic cancellation was attempted and failed. Our admin team will now review this manually.",
             'type'       => 'error',
             'link'       => '/dashboard/tickets',
             'read'       => false,
             'created_at' => now(),
         ]);
+
+        $order->update(['escalation_stage' => 3, 'stale_pinged_at' => now()]);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -371,9 +403,9 @@ class ProviderEscalation extends Command
 
         **What happens next:**
         - If the order does not progress within 24 hours, we will escalate again with higher priority.
-        - If still unresolved after 4 days, an automatic refund will be processed to your wallet.
-
-        You do not need to take any action, but you may reply here if you have specific concerns or would prefer an immediate cancellation and refund.
+        - If still unresolved after 4 days, we will attempt to automatically cancel and refund the order via our provider API.
+ 
+        You do not need to take any action, but you may reply here if you have specific concerns or would prefer an immediate cancellation check.
         MSG;
     }
 }
