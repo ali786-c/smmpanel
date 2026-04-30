@@ -29,6 +29,8 @@ class OrderController extends Controller
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('link', 'LIKE', '%' . $request->search . '%')
+                    ->orWhere('id', 'LIKE', '%' . $request->search . '%')
+                    ->orWhere('external_order_id', 'LIKE', '%' . $request->search . '%')
                     ->orWhereHas('service', fn($sq) => $sq->where('name', 'LIKE', '%' . $request->search . '%'));
             });
         }

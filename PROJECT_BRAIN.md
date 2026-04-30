@@ -181,3 +181,12 @@ MAILJET_SENDER_NAME=emazingSM
 ---
 
 ## 🧠 Future Brain Context (To be updated after every change)
+
+### [2026-04-30] - JAP Order ID Integration [COMPLETED]
+- **Goal**: Display the Just Another Panel (JAP) order ID prominently across the panel to avoid user/admin confusion.
+- **Action**: Updated `AdminOrderController.php` and `OrderController.php` to support search by `external_order_id`.
+- **Action**: Updated React frontend (`AdminOrders.tsx`, `Orders.tsx`, `OrderDetail.tsx`) to display the `external_order_id` in tables and invoices.
+- **Strategy**: 
+  - The database primary key remains a UUID (`id`).
+  - The frontend displays `external_order_id || id.slice(0, 8)` to gracefully fall back for manual orders that have no JAP ID.
+  - CSV exports and search functionalities were updated to recognize `external_order_id`.

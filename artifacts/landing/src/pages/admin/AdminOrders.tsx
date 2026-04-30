@@ -44,8 +44,13 @@ export default function AdminOrders() {
   const handleSyncStatus = async (orderId: string) => {
     setSyncingId(orderId);
     const res = await apiFetch(`/admin/orders/${orderId}/sync-status`, { method: "POST" });
-    if (res.ok) { toast.success("Status synced"); load(page); }
-    else toast.error("Sync failed");
+    if (res.ok) { 
+      toast.success("Status synced"); 
+      load(page); 
+    } else { 
+      const e = await res.json().catch(() => ({}));
+      toast.error(e.error || e.message || "Sync failed"); 
+    }
     setSyncingId(null);
   };
 
@@ -108,7 +113,7 @@ export default function AdminOrders() {
                 <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">No orders found</td></tr>
               ) : orders.map(o => (
                 <tr key={o.id} className="border-b border-border/30 hover:bg-secondary/20">
-                  <td className="px-3 py-2.5 font-mono text-xs">{String(o.id).slice(0,8)}…</td>
+                  <td className="px-3 py-2.5 font-mono text-xs">{o.external_order_id || String(o.id).slice(0,8)}</td>
                   <td className="px-3 py-2.5 text-xs">{o.user_email ?? o.user?.email ?? o.user_id?.slice(0,8)}</td>
                   <td className="px-3 py-2.5 text-xs truncate max-w-[100px]">{o.service_name ?? o.service?.name ?? "—"}</td>
                   <td className="px-3 py-2.5 text-xs truncate max-w-[120px] text-muted-foreground">{o.link}</td>
@@ -121,8 +126,8 @@ export default function AdminOrders() {
                   <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{new Date(o.created_at).toLocaleDateString()}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={syncingId === o.id}
-                        onClick={() => handleSyncStatus(o.id)} title="Sync status">
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={syncingId === o.id || !o.external_order_id}
+                        onClick={() => handleSyncStatus(o.id)} title={o.external_order_id ? "Sync status" : "No external ID to sync"}>
                         {syncingId === o.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                       </Button>
                       {o.status !== "Cancelled" && o.status !== "Completed" && (

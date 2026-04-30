@@ -23,6 +23,7 @@ const statusVariant: Record<string, string> = {
 interface Order {
   id: string; link: string; quantity: number; remains: number | null;
   start_count: number | null; status: string; cost: number; created_at: string;
+  external_order_id?: number | null;
   service?: { name: string } | null;
 }
 
@@ -43,7 +44,7 @@ export default function Orders() {
     const matchesTab = activeTab === "All" || o.status === activeTab;
     const svcName = (o.service as any)?.name ?? "";
     const matchesSearch = search
-      ? o.id.includes(search) || o.link.toLowerCase().includes(search.toLowerCase()) || svcName.toLowerCase().includes(search.toLowerCase())
+      ? o.id.includes(search) || o.external_order_id?.toString().includes(search) || o.link.toLowerCase().includes(search.toLowerCase()) || svcName.toLowerCase().includes(search.toLowerCase())
       : true;
     return matchesTab && matchesSearch;
   });
@@ -51,7 +52,7 @@ export default function Orders() {
   const exportCSV = () => {
     const headers = ["ID", "Date", "Service", "Link", "Quantity", "Start Count", "Remains", "Cost", "Status"];
     const rows = filtered.map(o => [
-      o.id, new Date(o.created_at).toISOString(), (o.service as any)?.name || "",
+      o.external_order_id || o.id, new Date(o.created_at).toISOString(), (o.service as any)?.name || "",
       o.link, o.quantity, o.start_count ?? "", o.remains ?? "", Number(o.cost).toFixed(4), o.status,
     ]);
     const csv = [headers.join(","), ...rows.map(r => r.map(c => `"${c}"`).join(","))].join("\n");
@@ -104,7 +105,7 @@ export default function Orders() {
             {filtered.map(order => (
               <tr key={order.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/20 cursor-pointer">
                 <td className="py-3 font-mono text-xs">
-                  <Link to={`/dashboard/orders/${order.id}`} className="text-primary hover:underline">{order.id.slice(0, 8)}</Link>
+                  <Link to={`/dashboard/orders/${order.id}`} className="text-primary hover:underline">{order.external_order_id || order.id.slice(0, 8)}</Link>
                 </td>
                 <td className="py-3 text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</td>
                 <td className="py-3 text-xs max-w-[150px] truncate">

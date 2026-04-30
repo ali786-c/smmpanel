@@ -80,7 +80,7 @@ export default function OrderDetail() {
     const svc = order.service as any;
     const html = `<!DOCTYPE html><html><head><title>Invoice #${order.id.slice(0,8)}</title>
     <style>body{font-family:sans-serif;padding:40px;max-width:600px;margin:auto}h1{color:#10b981}table{width:100%;border-collapse:collapse}td,th{padding:8px;border:1px solid #eee;text-align:left}</style>
-    </head><body><h1>emazingSM Invoice</h1><p>Order ID: ${order.id}</p><p>Date: ${format(new Date(order.created_at), "PPP")}</p>
+    </head><body><h1>emazingSM Invoice</h1><p>Order ID: ${order.external_order_id || order.id}</p><p>Date: ${format(new Date(order.created_at), "PPP")}</p>
     <table><tr><th>Service</th><th>Quantity</th><th>Amount</th></tr>
     <tr><td>${svc?.name ?? "Service"}</td><td>${order.quantity}</td><td>$${Number(order.cost).toFixed(4)}</td></tr></table>
     <p><strong>Total: $${Number(order.cost).toFixed(4)}</strong></p></body></html>`;
@@ -105,7 +105,7 @@ export default function OrderDetail() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="font-heading font-bold text-lg">{svc?.name ?? "Order"}</h2>
-            <p className="text-xs text-muted-foreground mt-1">ID: {order.id.slice(0, 8)}... · {format(new Date(order.created_at), "PPP")}</p>
+            <p className="text-xs text-muted-foreground mt-1">ID: {order.external_order_id || order.id.slice(0, 8)} · {format(new Date(order.created_at), "PPP")}</p>
           </div>
           <Badge className={statusVariant[order.status] ?? "bg-muted"}>
             <StatusIcon className="w-3 h-3 mr-1" />{order.status}
