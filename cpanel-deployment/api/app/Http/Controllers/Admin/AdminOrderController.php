@@ -46,11 +46,11 @@ class AdminOrderController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $summaryQuery = clone $query;
-        $totalRevenue = $summaryQuery->where('status', '!=', 'Cancelled')->sum('cost');
-        $totalProfit = (clone $summaryQuery)->selectRaw('SUM(cost - COALESCE(provider_cost, 0)) as profit')->value('profit') ?? 0;
+        $summaryQuery = (clone $query)->reorder();
+        $totalRevenue = (clone $summaryQuery)->where('status', '!=', 'Cancelled')->sum('cost');
+        $totalProfit = (clone $summaryQuery)->where('status', '!=', 'Cancelled')->selectRaw('SUM(cost - COALESCE(provider_cost, 0)) as profit')->value('profit') ?? 0;
 
-        $orders = $query->paginate($request->get('per_page', 25));
+        $orders = $query->paginate($request->get('per_page', 30));
 
         return response()->json(array_merge($orders->toArray(), [
             'total_revenue' => (float) $totalRevenue,
