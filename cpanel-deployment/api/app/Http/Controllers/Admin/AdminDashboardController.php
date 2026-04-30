@@ -56,7 +56,8 @@ class AdminDashboardController extends Controller
     public function charts()
     {
         $days = 30;
-        $dailyRevenue = Order::selectRaw("DATE(created_at) as date, SUM(cost) as revenue, SUM(cost - COALESCE(provider_cost, 0)) as profit, COUNT(*) as orders")
+        $dailyRevenue = DB::table('orders')
+            ->selectRaw("DATE(created_at) as date, SUM(cost) as revenue, (SUM(cost) - SUM(COALESCE(provider_cost, 0))) as profit, COUNT(*) as orders")
             ->where('created_at', '>=', now()->subDays($days))
             ->where('status', '!=', 'Cancelled')
             ->groupBy('date')

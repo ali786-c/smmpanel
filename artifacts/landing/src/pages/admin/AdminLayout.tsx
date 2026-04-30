@@ -198,13 +198,13 @@ function AdminOverviewContent() {
           {revenueData.length > 0 ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueData}>
+                <BarChart data={revenueData} barGap={4}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(213,30%,20%)" />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(213,20%,55%)" }} />
                   <YAxis tick={{ fontSize: 11, fill: "hsl(213,20%,55%)" }} />
                   <Tooltip contentStyle={{ background: "hsl(213,50%,12%)", border: "1px solid hsl(213,30%,20%)", borderRadius: 12 }} />
-                  <Bar dataKey="revenue" fill="hsl(163,58%,50%)" radius={[4,4,0,0]} name="Revenue" />
-                  <Bar dataKey="profit" fill="hsl(155,100%,75%)" radius={[4,4,0,0]} name="Profit" />
+                  <Bar dataKey="revenue" fill="hsl(163,58%,50%)" radius={[2,2,0,0]} name="Revenue" />
+                  <Bar dataKey="profit" fill="hsl(38,92%,50%)" radius={[2,2,0,0]} name="Profit" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
