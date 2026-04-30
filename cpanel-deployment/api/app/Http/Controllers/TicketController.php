@@ -30,6 +30,7 @@ class TicketController extends Controller
             'content'  => 'nullable|string',
             'priority' => 'nullable|in:low,normal,medium,high',
             'category' => 'nullable|string|max:100',
+            'order_id' => 'nullable|exists:orders,id',
         ]);
 
         $body = $validated['message'] ?? $validated['content'] ?? '';
@@ -42,6 +43,7 @@ class TicketController extends Controller
         $ticket = Ticket::create([
             'id'          => (string) Str::uuid(),
             'user_id'     => $user->id,
+            'order_id'    => $validated['order_id'] ?? null,
             'subject'     => $validated['subject'],
             'priority'    => $validated['priority'] ?? 'normal',
             'ticket_type' => $validated['category'] ?? 'general',

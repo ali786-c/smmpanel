@@ -105,26 +105,41 @@ export default function Tickets() {
       {showCreate && (
         <div className="glass rounded-2xl p-5 space-y-3">
           <h3 className="font-heading font-semibold">Create New Ticket</h3>
-          <Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Subject" className="bg-secondary/50" />
-          <select value={newCategory} onChange={e => setNewCategory(e.target.value)} className="w-full rounded-lg bg-secondary/50 border border-border px-3 py-2 text-sm">
-            <option value="general">General</option>
-            <option value="billing">Billing</option>
-            <option value="technical">Technical</option>
-            <option value="order">Order Issue</option>
-          </select>
-          {newCategory === "order" && (
-            <select value={selectedOrder} onChange={e => setSelectedOrder(e.target.value)} className="w-full rounded-lg bg-secondary/50 border border-border px-3 py-2 text-sm">
-                <option value="">Select an order (Optional)</option>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Subject</label>
+              <Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="e.g. Order not starting" className="bg-secondary/50" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Category</label>
+              <select value={newCategory} onChange={e => setNewCategory(e.target.value)} className="w-full h-10 rounded-lg bg-secondary/50 border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none">
+                <option value="general">General Inquiry</option>
+                <option value="order">Order Issue</option>
+                <option value="billing">Billing/Payment</option>
+                <option value="technical">Technical Support</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Related Order (Optional)</label>
+            <select value={selectedOrder} onChange={e => setSelectedOrder(e.target.value)} className="w-full h-10 rounded-lg bg-secondary/50 border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none">
+                <option value="">No specific order</option>
                 {orders.map(o => (
                     <option key={o.id} value={o.id}>
-                        Order #{String(o.id).slice(0,8)}... - {o.service_name || "Order"} (${o.cost})
+                        #{String(o.id).slice(0,8)}... — {o.service?.name?.slice(0, 40) || "Order"} (${o.cost})
                     </option>
                 ))}
             </select>
-          )}
-          <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Describe your issue..." className="bg-secondary/50 min-h-[100px]" />
-          <div className="flex gap-2">
-            <Button onClick={createTicket} disabled={creating || !newSubject.trim() || !newMessage.trim()} className="gradient-primary text-primary-foreground">
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Message</label>
+            <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Explain your issue in detail..." className="bg-secondary/50 min-h-[120px]" />
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button onClick={createTicket} disabled={creating || !newSubject.trim() || !newMessage.trim()} className="gradient-primary text-primary-foreground min-w-[140px]">
               {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Submit Ticket
             </Button>
             <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
