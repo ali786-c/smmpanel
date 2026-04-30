@@ -190,3 +190,10 @@ MAILJET_SENDER_NAME=emazingSM
   - The database primary key remains a UUID (`id`).
   - The frontend displays `external_order_id || id.slice(0, 8)` to gracefully fall back for manual orders that have no JAP ID.
   - CSV exports and search functionalities were updated to recognize `external_order_id`.
+
+### [2026-04-30] - Admin Retry & Provider Error Display [COMPLETED]
+- **Goal**: Allow admins to easily identify why an order failed to send to JAP and manually retry it.
+- **Action**: Updated `OrderController.php` (`sendToProvider` & `massStore`) to capture JAP's API error and save it to the `notes` column prefixed with `[Provider Error]`.
+- **Action**: Added `retryProvider` method in `AdminOrderController.php` with a new endpoint `POST /orders/{id}/retry`.
+- **Action**: Updated `AdminOrders.tsx` to highlight JAP errors in red text under the service name.
+- **Action**: Added a "Retry" button for `Pending` orders that don't have an `external_order_id` yet.

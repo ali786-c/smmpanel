@@ -189,6 +189,7 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::patch('/orders/{id}', [AdminOrderController::class, 'update']);
     Route::post('/orders/{id}/refund', [AdminOrderController::class, 'refund']);
     Route::post('/orders/{id}/sync-status', [AdminOrderController::class, 'syncStatus']);
+    Route::post('/orders/{id}/retry', [AdminOrderController::class, 'retryProvider']);
 
     // Finance
     Route::get('/finance', [AdminFinanceController::class, 'overview']);

@@ -312,4 +312,48 @@ class AdminOrderController extends Controller
 
         return response()->json(['summary' => $summary, 'orders' => $orders->take(1000)]);
     }
+    public function retryProvider(Request $request, $id)
+    {
+        $order = Order::with('service')->findOrFail($id);
+        
+        if ($order->external_order_id) {
+            return response()->json(['error' => 'Order already has an external provider ID.'], 400);
+        }
+
+        $providerUrl = config('services.provider.api_url');
+        $providerKey = config('services.provider.api_key');
+
+        if (!$providerUrl || !$providerKey) {
+            return response()->json(['error' => 'Provider not configured'], 422);
+        }
+
+        try {
+            $response = Http::timeout(15)->asForm()->post($providerUrl, [
+                'key'      => $providerKey,
+                'action'   => 'add',
+                'service'  => $order->service->external_service_id,
+                'link'     => $order->link,
+                'quantity' => $order->quantity,
+            ]);
+
+            $data = $response->json() ?? [];
+            
+            if (isset($data['order'])) {
+                $order->update([
+                    'external_order_id'  => $data['order'],
+                    'provider_order_id'  => (string) $data['order'],
+                    'status'             => 'In progress',
+                    'notes'              => null, // clear previous errors
+                ]);
+                return response()->json(['message' => 'Order successfully sent to provider', 'order' => $order->fresh()]);
+            } else {
+                $errorMsg = $data['error'] ?? 'Unknown provider error';
+                $order->update(['notes' => '[Provider Error] ' . $errorMsg]);
+                return response()->json(['error' => $errorMsg], 422);
+            }
+        } catch (\Exception $e) {
+            $order->update(['notes' => '[Provider Error] Connection failed']);
+            return response()->json(['error' => 'Connection to provider failed'], 500);
+        }
+    }
 }

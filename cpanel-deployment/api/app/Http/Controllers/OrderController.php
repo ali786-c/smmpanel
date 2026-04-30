@@ -172,16 +172,23 @@ class OrderController extends Controller
                 'quantity' => $order->quantity,
             ]);
 
-            $data = $response->json();
+            $data = $response->json() ?? [];
             if (isset($data['order'])) {
                 $order->update([
                     'external_order_id'  => $data['order'],
                     'provider_order_id'  => (string) $data['order'],
                     'status'             => 'In progress',
+                    'notes'              => null,
                 ]);
+            } elseif (isset($data['error'])) {
+                $order->update([
+                    'notes' => '[Provider Error] ' . $data['error']
+                ]);
+                Log::warning('Provider order returned error', ['order_id' => $order->id, 'error' => $data['error']]);
             }
         } catch (\Exception $e) {
             Log::error('Provider order failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            $order->update(['notes' => '[Provider Error] Connection failed']);
         }
     }
 
@@ -281,8 +288,10 @@ class OrderController extends Controller
                     'quantity' => $item['quantity'],
                 ]);
 
-                $providerData    = $providerRes->json();
+                $providerData    = $providerRes->json() ?? [];
                 $providerOrderId = $providerData['order'] ?? null;
+                $providerError   = $providerData['error'] ?? null;
+                $notes           = $providerError ? '[Provider Error] ' . $providerError : null;
 
                 $order = Order::create([
                     'id'                => $orderId,
@@ -294,6 +303,7 @@ class OrderController extends Controller
                     'provider_cost'     => $providerCost,
                     'status'            => $providerOrderId ? 'In progress' : 'Pending',
                     'external_order_id' => $providerOrderId,
+                    'notes'             => $notes,
                 ]);
 
                 WalletTransaction::create([
