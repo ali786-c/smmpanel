@@ -44,7 +44,13 @@ class AdminFinanceController extends Controller
             ->where('status', '!=', 'Cancelled')
             ->groupBy('date')
             ->orderBy('date')
-            ->get();
+            ->get()
+            ->map(fn($r) => [
+                'date' => $r->date,
+                'revenue' => (float) $r->revenue,
+                'profit' => (float) $r->profit,
+                'orders' => (int) $r->orders,
+            ]);
 
         return response()->json([
             'total_revenue' => $totalRevenue,
