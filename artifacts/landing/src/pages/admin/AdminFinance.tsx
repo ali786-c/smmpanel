@@ -28,7 +28,7 @@ export default function AdminFinance() {
     { label: "Total Refunds", value: `$${parseFloat(o.total_refunds ?? 0).toFixed(2)}`, icon: ArrowUpRight, color: "text-destructive" },
   ];
 
-  const chartData = o.daily_revenue ?? [];
+  const chartData = (o.daily_revenue ?? []).map((d: any) => ({ ...d, profit: d.profit ?? 0 }));
 
   return (
     <div className="space-y-6">
@@ -48,16 +48,16 @@ export default function AdminFinance() {
 
       {chartData.length > 0 && (
         <div className="glass rounded-2xl p-6">
-          <h3 className="font-heading font-semibold mb-4">Revenue Over Time</h3>
+          <h3 className="font-heading font-semibold mb-4">Revenue & Profit Over Time</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <BarChart data={chartData} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Revenue" />
-                <Bar dataKey="profit" fill="hsl(163,58%,30%)" radius={[4, 4, 0, 0]} name="Profit" />
+                <Bar dataKey="revenue" fill="hsl(163,58%,50%)" radius={[2, 2, 0, 0]} name="Revenue" />
+                <Bar dataKey="profit" fill="hsl(38,92%,50%)" radius={[2, 2, 0, 0]} name="Profit" />
               </BarChart>
             </ResponsiveContainer>
           </div>
