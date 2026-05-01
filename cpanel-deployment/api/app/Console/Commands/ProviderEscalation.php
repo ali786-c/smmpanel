@@ -230,6 +230,8 @@ class ProviderEscalation extends Command
     // ──────────────────────────────────────────────────────────────────────
     // CRITICAL (4+ days)
     // ──────────────────────────────────────────────────────────────────────
+    private function criticalEscalation(Order $order): void
+    {
         $ticket = Ticket::where('order_id', $order->id)->where('auto_opened', true)->first();
  
         $criticalNote = "**CRITICAL – Day 4+:** This order has been stuck for " . now()->diffInDays($order->created_at) . " days. We are now attempting an automatic cancellation via our provider API. If successful, you will receive an immediate refund.";

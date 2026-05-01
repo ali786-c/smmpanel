@@ -134,7 +134,9 @@ class AuthController extends Controller
         $user->update(['last_login_at' => now()]);
 
         if ($user->isBanned()) {
-            JWTAuth::invalidate(JWTAuth::getToken());
+            try {
+                JWTAuth::setToken($token)->invalidate();
+            } catch (\Throwable $e) {}
             return response()->json(['error' => 'Your account has been suspended. Please contact support.'], 403);
         }
 
