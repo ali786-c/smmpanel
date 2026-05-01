@@ -38,7 +38,8 @@ class AdminFinanceController extends Controller
 
         $totalWalletBalance = Wallet::sum('balance');
 
-        $dailyRevenue = Order::selectRaw("DATE(created_at) as date, SUM(cost) as revenue, (SUM(cost) - SUM(COALESCE(provider_cost, 0))) as profit, COUNT(*) as orders")
+        $dailyRevenue = \Illuminate\Support\Facades\DB::table('orders')
+            ->selectRaw("DATE(created_at) as date, SUM(cost) as revenue, (SUM(cost) - SUM(COALESCE(provider_cost, 0))) as profit, COUNT(*) as orders")
             ->whereDate('created_at', '>=', $dateFrom)
             ->whereDate('created_at', '<=', $dateTo)
             ->where('status', '!=', 'Cancelled')
