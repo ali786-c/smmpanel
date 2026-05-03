@@ -54,6 +54,7 @@ class OrderController extends Controller
             'service_id' => 'required|uuid|exists:services,id',
             'link' => 'required|string|max:2000',
             'quantity' => 'required|integer|min:1',
+            'comments' => 'nullable|string',
             'coupon_code' => 'nullable|string',
         ]);
 
@@ -107,6 +108,7 @@ class OrderController extends Controller
                 'service_id' => $service->id,
                 'link' => $validated['link'],
                 'quantity' => $validated['quantity'],
+                'comments' => $validated['comments'] ?? null,
                 'cost' => $cost,
                 'provider_cost' => $providerCost,
                 'status' => 'Pending',
@@ -170,6 +172,7 @@ class OrderController extends Controller
                 'service'  => $service->external_service_id,
                 'link'     => $order->link,
                 'quantity' => $order->quantity,
+                'comments' => $order->comments,
             ]);
 
             $data = $response->json() ?? [];

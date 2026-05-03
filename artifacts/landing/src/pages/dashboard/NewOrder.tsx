@@ -51,6 +51,7 @@ export default function NewOrder() {
   const [selectedServiceId, setSelectedServiceId] = useState(searchParams.get("service") ?? "");
   const [link, setLink] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [comments, setComments] = useState("");
   const [dripFeed, setDripFeed] = useState(false);
   const [dripRuns, setDripRuns] = useState("");
   const [dripInterval, setDripInterval] = useState("");
@@ -214,7 +215,7 @@ export default function NewOrder() {
     if (!selectedService || !canOrder) return;
     setSubmitting(true);
     try {
-      const body: any = { service_id: selectedService.id, link: link.trim(), quantity: qty };
+      const body: any = { service_id: selectedService.id, link: link.trim(), quantity: qty, comments: comments.trim() };
       if (dripFeed && dripRuns && dripInterval) { body.runs = parseInt(dripRuns); body.interval = parseInt(dripInterval); }
       if (couponApplied) body.coupon_code = couponApplied;
       const res = await apiFetch("/orders", { method: "POST", body: JSON.stringify(body) });
@@ -327,6 +328,18 @@ export default function NewOrder() {
                   <Label className="text-xs text-muted-foreground uppercase tracking-wider">Quantity <span className="text-primary">({selectedService.min_order} – {selectedService.max_order.toLocaleString()})</span></Label>
                   <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} min={selectedService.min_order} max={selectedService.max_order} placeholder={String(selectedService.min_order)} className="bg-secondary/50" />
                 </div>
+
+                {selectedService?.type === "Custom Comments" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Comments (1 per line)</Label>
+                    <textarea 
+                      value={comments} 
+                      onChange={e => setComments(e.target.value)} 
+                      placeholder="Enter comments here, one per line..." 
+                      className="flex min-h-[120px] w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                )}
 
                 {/* Drip Feed */}
                 <div className="flex items-center gap-2">
