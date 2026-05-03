@@ -166,14 +166,25 @@ class OrderController extends Controller
         }
 
         try {
-            $response = Http::timeout(15)->asForm()->post($providerUrl, [
+            $params = [
                 'key'      => $providerKey,
                 'action'   => 'add',
                 'service'  => $service->external_service_id,
                 'link'     => $order->link,
                 'quantity' => $order->quantity,
-                'comments' => $order->comments,
-            ]);
+            ];
+
+            // Add extra fields based on service type
+            $type = $service->type;
+            if ($type === 'Custom Comments' || $type === 'Comment Replies' || strpos($type, 'Comments') !== false) {
+                $params['comments'] = $order->comments;
+            } elseif (strpos($type, 'Mentions') !== false) {
+                $params['usernames'] = $order->comments;
+            } elseif ($type === 'Poll') {
+                $params['answer_number'] = $order->comments;
+            }
+
+            $response = Http::timeout(15)->asForm()->post($providerUrl, $params);
 
             $data = $response->json() ?? [];
             if (isset($data['order'])) {
