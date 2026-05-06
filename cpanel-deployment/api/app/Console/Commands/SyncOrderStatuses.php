@@ -60,10 +60,12 @@ class SyncOrderStatuses extends Command
                 $order->update($changes);
                 $updated++;
 
-                // Handle partial completion
+                // Handle partial completion - DISABLED: User requested no automatic refunds
+                /*
                 if ($mappedStatus === 'Partial') {
                     $this->handlePartialOrder($order, (int) ($remains ?? 0), (float) ($charge ?? 0));
                 }
+                */
 
             } catch (\Throwable $e) {
                 $this->warn("Failed to sync order {$order->id}: " . $e->getMessage());

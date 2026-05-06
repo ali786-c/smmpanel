@@ -1,7 +1,4 @@
-GOOGLE AUTHENTICATION SETUP GUIDE
-================================
 
-To enable "Login with Google" on your platform, please follow these steps to generate your API credentials.
 
 STEP 1: Google Cloud Console
 ----------------------------
@@ -43,4 +40,4 @@ GOOGLE_CLIENT_ID=xxxxxxxxxxxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx
 GOOGLE_REDIRECT_URI=https://emazingsm.com/api/auth/google/callback
 
-Done! I will then apply these to your server.
+Done! I will then apply these to  server.

@@ -19,7 +19,9 @@ class RefundMonitor extends Command
 
     public function handle(): int
     {
-        $this->info('Starting refund monitor...');
+        $this->info('Refund monitor is currently DISABLED by admin request.');
+        return Command::SUCCESS;
+        
         $dryRun = $this->option('dry-run');
 
         $providerApiUrl = config('services.provider.api_url');
