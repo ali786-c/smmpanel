@@ -7,16 +7,25 @@ export default function AdminFinance() {
   const [overview, setOverview] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   useEffect(() => {
-    Promise.all([
-      apiFetch("/admin/finance").then(r => r.ok ? r.json() : null),
-      apiFetch("/admin/finance/transactions?per_page=50").then(r => r.ok ? r.json() : null),
-    ]).then(([ov, tx]) => {
+    apiFetch("/admin/finance").then(r => r.ok ? r.json() : null).then(ov => {
       setOverview(ov?.overview ?? ov ?? {});
-      setTransactions(tx?.data ?? tx?.transactions ?? []);
-    }).finally(() => setLoading(false));
+    });
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    apiFetch(`/admin/finance/transactions?page=${currentPage}&per_page=25`)
+      .then(r => r.ok ? r.json() : null)
+      .then(tx => {
+        setTransactions(tx?.data ?? tx?.transactions ?? []);
+        setLastPage(tx?.last_page ?? 1);
+      })
+      .finally(() => setLoading(false));
+  }, [currentPage]);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
@@ -92,6 +101,31 @@ export default function AdminFinance() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {lastPage > 1 && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
+            <p className="text-xs text-muted-foreground">
+              Page <span className="text-foreground font-medium">{currentPage}</span> of <span className="text-foreground font-medium">{lastPage}</span>
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg glass border border-border/50 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary/50 transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(lastPage, prev + 1))}
+                disabled={currentPage === lastPage}
+                className="px-3 py-1.5 rounded-lg glass border border-border/50 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary/50 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
