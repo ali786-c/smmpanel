@@ -90,6 +90,13 @@ class AdminBlogController extends Controller
         return response()->json(['message' => 'Blog post deleted']);
     }
 
+    public function sendToDiscord($id)
+    {
+        $post = BlogPost::findOrFail($id);
+        $post->sendToDiscord();
+        return response()->json(['message' => 'Notification sent to Discord']);
+    }
+
     public function generateAI(Request $request)
     {
         $validated = $request->validate([

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, FileText, Check, X, Edit2 } from "lucide-react";
+import { Loader2, Plus, Trash2, FileText, Check, X, Edit2, MessageSquare } from "lucide-react";
 
 export default function AdminBlog() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -98,6 +98,19 @@ export default function AdminBlog() {
                 <p className="text-xs text-muted-foreground mt-1">{new Date(p.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex gap-1 flex-shrink-0">
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-7 w-7 p-0 text-primary" 
+                  title="Send to Discord"
+                  onClick={async () => {
+                    const res = await apiFetch(`/admin/blog/${p.id}/send-to-discord`, { method: "POST" });
+                    if (res.ok) toast.success("Sent to Discord");
+                    else toast.error("Failed to send");
+                  }}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                </Button>
                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(p)}><Edit2 className="w-3.5 h-3.5" /></Button>
                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>

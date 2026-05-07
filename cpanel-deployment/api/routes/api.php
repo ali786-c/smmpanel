@@ -213,6 +213,7 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::post('/blog', [AdminBlogController::class, 'store']);
     Route::patch('/blog/{id}', [AdminBlogController::class, 'update']);
     Route::delete('/blog/{id}', [AdminBlogController::class, 'destroy']);
+    Route::post('/blog/{id}/send-to-discord', [AdminBlogController::class, 'sendToDiscord']);
     Route::post('/blog/generate-ai', [AdminBlogController::class, 'generateAI']);
 
     // Blog Automation
