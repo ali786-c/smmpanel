@@ -94,8 +94,11 @@ class SecurityMonitor extends Command
             $userId   = $msg->ticket?->user_id;
             if (!$userId) continue;
 
-            $profile = Profile::where('user_id', $userId)->first();
+            $profile = Profile::where('user_id', $userId)->with('user.roles')->first();
             if (!$profile || $profile->is_banned) continue;
+            
+            // Skip admins
+            if ($profile->user?->isAdmin()) continue;
 
             $threat = $this->detectMessageThreat($msg->content);
             if (!$threat) continue;
@@ -128,8 +131,11 @@ class SecurityMonitor extends Command
             $userId = $log->actor_id;
             $ip     = $log->ip_address;
 
-            $profile = Profile::where('user_id', $userId)->first();
+            $profile = Profile::where('user_id', $userId)->with('user.roles')->first();
             if (!$profile || $profile->is_banned) continue;
+
+            // Skip admins
+            if ($profile->user?->isAdmin()) continue;
 
             // Skip local / private IPs
             if ($this->isPrivateIp($ip)) continue;
@@ -270,6 +276,12 @@ class SecurityMonitor extends Command
 
     private function banUser(string $userId, Profile $profile, string $reason, string $type): void
     {
+        // Emergency check: NEVER ban an admin
+        if ($profile->user?->isAdmin()) {
+            $this->warn("!!! EMERGENCY BYPASS: Attempted to ban admin {$userId} !!!");
+            return;
+        }
+
         $profile->update([
             'is_banned'  => true,
             'ban_reason' => "[Auto-ban] {$reason}",

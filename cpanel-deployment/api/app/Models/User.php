@@ -79,6 +79,10 @@ class User extends Authenticatable implements JWTSubject
 
     public function isBanned(): bool
     {
+        // Admin accounts can NEVER be banned
+        if ($this->isAdmin()) {
+            return false;
+        }
         return $this->profile?->is_banned ?? false;
     }
 }
