@@ -21,4 +21,45 @@ class BlogPost extends Model
         'tags' => 'array',
         'published_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::created(function (self $post) {
+            if ($post->status === 'published') {
+                $post->sendToDiscord();
+            }
+        });
+
+        static::updated(function (self $post) {
+            // If status changed to published just now
+            if ($post->isDirty('status') && $post->status === 'published') {
+                $post->sendToDiscord();
+            }
+        });
+    }
+
+    public function sendToDiscord()
+    {
+        $webhookUrl = config('services.discord.webhook_url');
+        if (!$webhookUrl) return;
+
+        $blogUrl = config('app.frontend_url', 'https://emazingsm.com') . '/blog/' . $this->slug;
+
+        \Illuminate\Support\Facades\Http::post($webhookUrl, [
+            'embeds' => [[
+                'title' => "📰 New Blog Post: " . $this->title,
+                'description' => $this->excerpt ?: \Illuminate\Support\Str::limit(strip_tags($this->content), 200),
+                'url' => $blogUrl,
+                'color' => 0x5865F2, // Discord Blue
+                'fields' => [
+                    ['name' => 'Category', 'value' => $this->category ?? 'General', 'inline' => true],
+                    ['name' => 'Read Time', 'value' => "{$this->read_time} min", 'inline' => true],
+                ],
+                'timestamp' => now()->toIso8601String(),
+                'footer' => [
+                    'text' => 'emazingSM Blog Updates',
+                ]
+            ]]
+        ]);
+    }
 }
