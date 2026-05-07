@@ -25,4 +25,9 @@ class WalletTransaction extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function payhubDetails()
+    {
+        return $this->hasOne(PayHubTransaction::class, 'id', 'reference_id');
+    }
 }

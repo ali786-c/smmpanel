@@ -66,7 +66,7 @@ class AdminFinanceController extends Controller
 
     public function transactions(Request $request)
     {
-        $query = WalletTransaction::with(['user:id,email'])
+        $query = WalletTransaction::with(['user:id,email', 'payhubDetails'])
             ->orderByDesc('created_at');
 
         if ($request->has('type')) {

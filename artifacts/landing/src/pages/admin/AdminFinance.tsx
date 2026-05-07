@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { Loader2, DollarSign, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, ArrowDownLeft, ArrowUpRight, Eye, CreditCard, User, X } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export default function AdminFinance() {
@@ -9,6 +9,7 @@ export default function AdminFinance() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
+  const [selectedTx, setSelectedTx] = useState<any>(null);
 
   useEffect(() => {
     apiFetch("/admin/finance").then(r => r.ok ? r.json() : null).then(ov => {
@@ -79,7 +80,7 @@ export default function AdminFinance() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-muted-foreground border-b border-border">
-                {["User","Type","Method","Amount","Status","Date"].map(h => <th key={h} className="pb-3 font-medium text-xs">{h}</th>)}
+                {["User","Type","Method","Amount","Status","Date", "Details"].map(h => <th key={h} className="pb-3 font-medium text-xs">{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -95,6 +96,17 @@ export default function AdminFinance() {
                     <span className={`text-xs px-2 py-0.5 rounded-full ${tx.status === "completed" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{tx.status}</span>
                   </td>
                   <td className="py-3 text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleDateString()}</td>
+                  <td className="py-3">
+                    {tx.payhub_details && (
+                      <button 
+                        onClick={() => setSelectedTx(tx)}
+                        className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-primary"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {transactions.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No transactions</td></tr>}
@@ -127,6 +139,72 @@ export default function AdminFinance() {
           </div>
         )}
       </div>
+
+      {/* Transaction Details Modal */}
+      {selectedTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="glass w-full max-w-md rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-border/50 flex items-center justify-between">
+              <h3 className="font-heading font-semibold text-lg">Transaction Details</h3>
+              <button onClick={() => setSelectedTx(null)} className="p-2 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Transaction ID</span>
+                  <p className="text-sm font-mono break-all">{selectedTx.id}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Status</span>
+                  <div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${selectedTx.status === "completed" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{selectedTx.status}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedTx.payhub_details && (
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  <h4 className="text-xs font-bold text-primary flex items-center gap-2 uppercase tracking-widest">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Card Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-y-4">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Card Brand</span>
+                      <p className="text-sm flex items-center gap-2 capitalize">
+                        {selectedTx.payhub_details.card_brand || "Unknown"}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Last 4 Digits</span>
+                      <p className="text-sm font-mono">•••• •••• •••• {selectedTx.payhub_details.card_last4 || "****"}</p>
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1">
+                        <User className="w-3 h-3" /> Cardholder Name
+                      </span>
+                      <p className="text-sm font-medium">{selectedTx.payhub_details.card_holder_name || "Not provided"}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Exchange Rate</span>
+                      <p className="text-sm">1 USD = {parseFloat(selectedTx.payhub_details.exchange_rate).toFixed(4)} EUR</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Amount (EUR)</span>
+                      <p className="text-sm font-bold text-primary">€{parseFloat(selectedTx.payhub_details.amount_eur).toFixed(2)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-4 bg-secondary/30 text-center">
+              <button onClick={() => setSelectedTx(null)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Close Details</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
