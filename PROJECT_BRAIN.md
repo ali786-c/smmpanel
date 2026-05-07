@@ -204,3 +204,28 @@ MAILJET_SENDER_NAME=emazingSM
 - **Action**: Added an impersonation `LogIn` button directly in the `AdminUsers.tsx` data table.
 - **Action**: Added a sticky red banner in `Dashboard.tsx` that appears when an admin is impersonating a user, containing a "Return to Admin" button.
 - **Security**: Impersonation attempts are recorded in the `ActivityLog`. Admins cannot impersonate other admins.
+### [2026-05-06] - Refund System Logic Update [COMPLETED]
+- **Goal**: Disable automatic system-triggered refunds for Partial and Cancelled orders to ensure manual admin oversight.
+- **Action**: Commented out `handlePartialOrder` logic in `SyncOrderStatuses.php`.
+- **Action**: Disabled `RefundMonitor.php` command by returning early in the `handle` method.
+- **Status**: [COMPLETED] System will no longer perform automatic wallet credits without admin intervention.
+
+### [2026-05-06] - Admin Finance Pagination [COMPLETED]
+- **Goal**: Improve performance and usability of the Admin Finance page by paginating the transaction list.
+- **Action**: Added `currentPage` and `lastPage` state management to `AdminFinance.tsx`.
+- **Action**: Implemented Previous/Next navigation controls below the transaction table.
+- **Action**: Updated API calls to request paginated data (25 per page).
+- **Status**: [COMPLETED] Admin can now navigate through large transaction histories easily.
+
+### [2026-05-07] - Admin Account Security & Bypass [COMPLETED]
+- **Goal**: Ensure Admin accounts are never accidentally suspended or auto-banned by security protocols.
+- **Action**: Updated `User.php` model `isBanned()` method to always return `false` for admins.
+- **Action**: Modified `SecurityMonitor.php` to skip admin accounts during threat scanning and added an emergency bypass in `banUser`.
+- **Status**: [COMPLETED] Admin accounts are now immune to automated suspension systems.
+
+### [2026-05-07] - Transaction Audit Details [COMPLETED]
+- **Goal**: Allow admins to view detailed PayHub payment information (card brand, last 4 digits, holder name) directly from the transaction list.
+- **Action**: Added `payhubDetails` relationship to `WalletTransaction` model.
+- **Action**: Updated `AdminFinanceController` to eager-load transaction details.
+- **Action**: Added an "Eye" icon and a detailed Modal in `AdminFinance.tsx` to display card information securely for audit purposes.
+- **Status**: [COMPLETED] Admins can now perform deeper audits of PayHub transactions.
