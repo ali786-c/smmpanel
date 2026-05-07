@@ -105,8 +105,9 @@ export default function AdminBlog() {
                   title="Send to Discord"
                   onClick={async () => {
                     const res = await apiFetch(`/admin/blog/${p.id}/send-to-discord`, { method: "POST" });
-                    if (res.ok) toast.success("Sent to Discord");
-                    else toast.error("Failed to send");
+                    const data = await res.json();
+                    if (res.ok) toast.success(data.message || "Sent to Discord");
+                    else toast.error(data.message || "Failed to send");
                   }}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />

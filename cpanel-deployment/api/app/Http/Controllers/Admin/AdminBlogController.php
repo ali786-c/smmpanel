@@ -93,8 +93,13 @@ class AdminBlogController extends Controller
     public function sendToDiscord($id)
     {
         $post = BlogPost::findOrFail($id);
-        $post->sendToDiscord();
-        return response()->json(['message' => 'Notification sent to Discord']);
+        $result = $post->sendToDiscord();
+
+        if ($result['success']) {
+            return response()->json(['message' => $result['message']]);
+        }
+
+        return response()->json(['message' => $result['message']], 422);
     }
 
     public function generateAI(Request $request)

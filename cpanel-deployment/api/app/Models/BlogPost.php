@@ -41,25 +41,37 @@ class BlogPost extends Model
     public function sendToDiscord()
     {
         $webhookUrl = config('services.discord.webhook_url');
-        if (!$webhookUrl) return;
+        if (!$webhookUrl) {
+            return ['success' => false, 'message' => 'Discord Webhook URL not configured in .env'];
+        }
 
         $blogUrl = config('app.frontend_url', 'https://emazingsm.com') . '/blog/' . $this->slug;
 
-        \Illuminate\Support\Facades\Http::post($webhookUrl, [
-            'embeds' => [[
-                'title' => "📰 New Blog Post: " . $this->title,
-                'description' => $this->excerpt ?: \Illuminate\Support\Str::limit(strip_tags($this->content), 200),
-                'url' => $blogUrl,
-                'color' => 0x5865F2, // Discord Blue
-                'fields' => [
-                    ['name' => 'Category', 'value' => $this->category ?? 'General', 'inline' => true],
-                    ['name' => 'Read Time', 'value' => "{$this->read_time} min", 'inline' => true],
-                ],
-                'timestamp' => now()->toIso8601String(),
-                'footer' => [
-                    'text' => 'emazingSM Blog Updates',
-                ]
-            ]]
-        ]);
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->post($webhookUrl, [
+                'embeds' => [[
+                    'title' => "📰 New Blog Post: " . $this->title,
+                    'description' => $this->excerpt ?: \Illuminate\Support\Str::limit(strip_tags($this->content), 200),
+                    'url' => $blogUrl,
+                    'color' => 0x5865F2, // Discord Blue
+                    'fields' => [
+                        ['name' => 'Category', 'value' => $this->category ?? 'General', 'inline' => true],
+                        ['name' => 'Read Time', 'value' => "{$this->read_time} min", 'inline' => true],
+                    ],
+                    'timestamp' => now()->toIso8601String(),
+                    'footer' => [
+                        'text' => 'emazingSM Blog Updates',
+                    ]
+                ]]
+            ]);
+
+            if ($response->successful()) {
+                return ['success' => true, 'message' => 'Notification sent successfully'];
+            }
+
+            return ['success' => false, 'message' => 'Discord API error: ' . $response->body()];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => 'Failed to connect to Discord: ' . $e->getMessage()];
+        }
     }
 }
