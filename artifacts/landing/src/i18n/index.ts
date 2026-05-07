@@ -16,6 +16,9 @@ import pt from "./locales/pt.json";
 import nl from "./locales/nl.json";
 import tr from "./locales/tr.json";
 import ru from "./locales/ru.json";
+import cs from "./locales/cs.json";
+import sk from "./locales/sk.json";
+import lt from "./locales/lt.json";
 
 export const supportedLanguages = [
   { code: "en", label: "English" },
@@ -27,6 +30,9 @@ export const supportedLanguages = [
   { code: "nl", label: "Nederlands" },
   { code: "tr", label: "Türkçe" },
   { code: "ru", label: "Русский" },
+  { code: "cs", label: "Čeština" },
+  { code: "sk", label: "Slovenčina" },
+  { code: "lt", label: "Lietuvių" },
   { code: "ar", label: "العربية", dir: "rtl" },
   { code: "hi", label: "हिन्दी" },
   { code: "bn", label: "বাংলা" },
@@ -52,6 +58,9 @@ i18n
       de: { translation: de },
       it: { translation: it },
       pt: { translation: pt },
+      cs: { translation: cs },
+      sk: { translation: sk },
+      lt: { translation: lt },
       nl: { translation: nl },
       tr: { translation: tr },
       ru: { translation: ru },
