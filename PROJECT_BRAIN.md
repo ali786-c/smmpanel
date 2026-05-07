@@ -227,5 +227,8 @@ MAILJET_SENDER_NAME=emazingSM
 - **Goal**: Allow admins to view detailed PayHub payment information (card brand, last 4 digits, holder name) directly from the transaction list.
 - **Action**: Added `payhubDetails` relationship to `WalletTransaction` model.
 - **Action**: Updated `AdminFinanceController` to eager-load transaction details.
-- **Action**: Added an "Eye" icon and a detailed Modal in `AdminFinance.tsx` to display card information securely for audit purposes.
-- **Status**: [COMPLETED] Admins can now perform deeper audits of PayHub transactions.
+### [2026-05-07] - Removal of Automatic Ticket Generation [COMPLETED]
+- **Goal**: Clean up the support dashboard by removing system-generated tickets for order delays and user actions.
+- **Action**: Disabled the `ProviderEscalation.php` command to stop automated delay tickets and speedup pings.
+- **Action**: Modified `OrderActionController.php` to remove ticket and message creation when users request Refills, Cancellations, or Speedups.
+- **Status**: [COMPLETED] Support dashboard will now only contain tickets manually opened by users.

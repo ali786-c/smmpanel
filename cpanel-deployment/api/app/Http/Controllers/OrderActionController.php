@@ -63,7 +63,7 @@ class OrderActionController extends Controller
             }
         }
 
-        // Open a ticket regardless so there is a clear paper trail
+        /* DISABLED: User requested no automatic tickets
         $ticket = Ticket::create([
             'id'               => (string) Str::uuid(),
             'user_id'          => $user->id,
@@ -88,6 +88,7 @@ class OrderActionController extends Controller
             'content'    => $ticketMsg,
             'created_at' => now(),
         ]);
+        */
 
         Notification::create([
             'id'         => (string) Str::uuid(),
@@ -97,7 +98,7 @@ class OrderActionController extends Controller
                 ? "Order cancelled. \${$order->cost} will be refunded to your wallet."
                 : "Your cancellation request is being processed. We'll notify you once it's confirmed.",
             'type'       => $immediateResult['success'] ? 'success' : 'info',
-            'link'       => "/dashboard/tickets/{$ticket->id}",
+            'link'       => "#", // Link disabled as no ticket is created
             'read'       => false,
             'created_at' => now(),
         ]);
@@ -105,7 +106,7 @@ class OrderActionController extends Controller
         return response()->json([
             'message'    => $immediateResult['success'] ? 'Order cancelled successfully' : 'Cancellation request submitted and being processed',
             'immediate'  => $immediateResult['success'],
-            'ticket_id'  => $ticket->id,
+            'ticket_id'  => null,
             'order'      => $order->fresh(),
         ]);
     }
@@ -149,6 +150,7 @@ class OrderActionController extends Controller
             : "We attempted to request a speedup from our provider but encountered an issue: " . ($speedupResult['error'] ?? 'unknown') . ". Our team has been notified and will manually escalate this order.";
 
         if ($existingTicket && $existingTicket->status !== 'closed') {
+            /* DISABLED: No automatic messages
             TicketMessage::create([
                 'id'         => (string) Str::uuid(),
                 'ticket_id'  => $existingTicket->id,
@@ -163,8 +165,10 @@ class OrderActionController extends Controller
                 'content'    => $msgContent,
                 'created_at' => now(),
             ]);
-            $ticketId = $existingTicket->id;
+            */
+            $ticketId = null;
         } else {
+            /* DISABLED: No automatic tickets
             $ticket = Ticket::create([
                 'id'               => (string) Str::uuid(),
                 'user_id'          => $user->id,
@@ -192,8 +196,8 @@ class OrderActionController extends Controller
                 'content'    => $msgContent,
                 'created_at' => now(),
             ]);
-
-            $ticketId = $ticket->id;
+            */
+            $ticketId = null;
         }
 
         Notification::create([
@@ -204,7 +208,7 @@ class OrderActionController extends Controller
                 ? "Speedup request for {$serviceName} confirmed by provider."
                 : "Speedup request received. Our team will escalate manually.",
             'type'       => $speedupResult['success'] ? 'success' : 'info',
-            'link'       => "/dashboard/tickets/{$ticketId}",
+            'link'       => "#", // Disabled as no ticket is created
             'read'       => false,
             'created_at' => now(),
         ]);
@@ -212,7 +216,7 @@ class OrderActionController extends Controller
         return response()->json([
             'message'        => $speedupResult['success'] ? 'Speedup request sent to provider' : 'Speedup request received – manual escalation triggered',
             'provider_pinged' => $speedupResult['success'],
-            'ticket_id'      => $ticketId,
+            'ticket_id'      => null,
         ]);
     }
 
@@ -237,6 +241,7 @@ class OrderActionController extends Controller
             $refillResult = $this->justPanel->requestSpeedup($providerOrderId); // refill uses same endpoint
         }
 
+        /* DISABLED: No automatic tickets
         $ticket = Ticket::create([
             'id'               => (string) Str::uuid(),
             'user_id'          => $user->id,
@@ -249,7 +254,9 @@ class OrderActionController extends Controller
             'escalated_at'     => $refillResult['success'] ? now() : null,
             'auto_opened'      => false,
         ]);
+        */
 
+        /* DISABLED: No messages
         $msgContent = "**Client Report:** I noticed a drop in count after order completion for {$serviceName}.\n\n" . ($request->input('message', ''));
         TicketMessage::create([
             'id'         => (string) Str::uuid(),
@@ -270,11 +277,12 @@ class OrderActionController extends Controller
             'content'    => $systemMsg,
             'created_at' => now(),
         ]);
+        */
 
         return response()->json([
             'message'        => $refillResult['success'] ? 'Refill request sent to provider' : 'Refill request logged for manual review',
             'provider_pinged' => $refillResult['success'],
-            'ticket_id'      => $ticket->id,
+            'ticket_id'      => null,
         ]);
     }
 }

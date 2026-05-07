@@ -31,7 +31,9 @@ class ProviderEscalation extends Command
 
     public function handle(JustPanelService $justPanel): int
     {
-        $this->info('Running provider escalation check...');
+        $this->info('Provider escalation and auto-tickets are currently DISABLED.');
+        return Command::SUCCESS;
+
         $dryRun = $this->option('dry-run');
 
         $stats = ['first_ping' => 0, 'urgent_ping' => 0, 'critical' => 0, 'cancel_forwarded' => 0];
