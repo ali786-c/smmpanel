@@ -24,7 +24,21 @@ export default function AdminOrders() {
   const [profit, setProfit] = useState(0);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
   const perPage = 30;
+
+  const handleBulkSync = async () => {
+    setIsSyncingAll(true);
+    const res = await apiFetch("/admin/orders/bulk-sync", { method: "POST" });
+    if (res.ok) {
+      const d = await res.json();
+      toast.success(`Checked ${d.checked} orders. Updated: ${d.updated}, Refunded: ${d.refunded}`);
+      load(page);
+    } else {
+      toast.error("Bulk sync failed");
+    }
+    setIsSyncingAll(false);
+  };
 
   const load = async (p = 1) => {
     setLoading(true);
@@ -88,15 +102,27 @@ export default function AdminOrders() {
         <h2 className="font-heading font-bold text-lg flex items-center gap-2">
           <ShoppingCart className="w-5 h-5 text-primary" /> Orders <span className="text-muted-foreground text-sm font-normal">({total})</span>
         </h2>
-        <form onSubmit={handleSearch} className="flex gap-2 flex-wrap">
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="h-9 rounded-xl border border-border bg-background text-sm px-3 text-foreground">
-            <option value="all">All Statuses</option>
-            {["Pending","In progress","Completed","Cancelled","Partial"].map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, link, ID…" className="w-48 h-9 text-sm" />
-          <Button type="submit" size="sm" variant="outline"><Search className="w-4 h-4" /></Button>
-        </form>
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            onClick={handleBulkSync} 
+            disabled={isSyncingAll}
+            variant="outline" 
+            size="sm" 
+            className="h-9 gap-2 text-primary border-primary/20 hover:bg-primary/5"
+          >
+            {isSyncingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Sync All Orders
+          </Button>
+          <form onSubmit={handleSearch} className="flex gap-2 flex-wrap">
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              className="h-9 rounded-xl border border-border bg-background text-sm px-3 text-foreground">
+              <option value="all">All Statuses</option>
+              {["Pending","In progress","Completed","Cancelled","Partial"].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, link, ID…" className="w-48 h-9 text-sm" />
+            <Button type="submit" size="sm" variant="outline"><Search className="w-4 h-4" /></Button>
+          </form>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
