@@ -51,7 +51,7 @@ class PaymentController extends Controller
         }
 
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:1|max:10000',
+            'amount' => 'required|numeric|min:10|max:10000',
         ]);
 
         $secretKey = $this->getSetting('secret_key');
@@ -136,7 +136,7 @@ class PaymentController extends Controller
         }
 
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:1|max:10000',
+            'amount' => 'required|numeric|min:10|max:10000',
         ]);
 
         $clientId     = $this->getSetting('client_id');
@@ -188,7 +188,7 @@ class PaymentController extends Controller
     {
         $validated = $request->validate([
             'order_id' => 'required|string',
-            'amount'   => 'required|numeric|min:1',
+            'amount'   => 'required|numeric|min:10',
         ]);
 
         $clientId     = $this->getSetting('client_id');
@@ -253,7 +253,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'currency'  => 'required|string|max:20',
             'tx_hash'   => 'required|string|max:255',
-            'amount'    => 'required|numeric|min:1',
+            'amount'    => 'required|numeric|min:10',
         ]);
 
         DB::table('wallet_transactions')->insert([

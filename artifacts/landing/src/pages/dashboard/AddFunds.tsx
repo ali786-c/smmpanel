@@ -11,8 +11,8 @@ export default function AddFunds() {
 
   const handlePayment = async () => {
     const numAmount = parseFloat(amount);
-    if (!numAmount || numAmount < 1) {
-      toast.error("Please enter a valid amount (min $1).");
+    if (!numAmount || numAmount < 10) {
+      toast.error("Please enter a valid amount (min $10).");
       return;
     }
 

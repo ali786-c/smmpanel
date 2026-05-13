@@ -42,7 +42,7 @@ class PayHubController extends Controller
     public function checkout(Request $request)
     {
         try {
-            $request->validate(['amount' => 'required|numeric|min:0.5']);
+            $request->validate(['amount' => 'required|numeric|min:10']);
             
             $user = $request->user('api');
             if (!$user) return response()->json(['error' => 'Unauthorized'], 401);

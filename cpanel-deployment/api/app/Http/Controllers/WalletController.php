@@ -46,7 +46,7 @@ class WalletController extends Controller
     public function deposit(Request $request)
     {
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:1',
+            'amount' => 'required|numeric|min:10',
             'payment_method' => 'required|string|in:stripe,paypal,crypto',
             'payment_reference' => 'nullable|string',
         ]);
