@@ -25,14 +25,29 @@ export default function AdminOrders() {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const perPage = 30;
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === orders.length && orders.length > 0) setSelectedIds([]);
+    else setSelectedIds(orders.map(o => o.id));
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
 
   const handleBulkSync = async () => {
     setIsSyncingAll(true);
-    const res = await apiFetch("/admin/orders/bulk-sync", { method: "POST" });
+    const res = await apiFetch("/admin/orders/bulk-sync", { 
+      method: "POST",
+      body: JSON.stringify({ order_ids: selectedIds.length > 0 ? selectedIds : null })
+    });
     if (res.ok) {
       const d = await res.json();
       toast.success(`Checked ${d.checked} orders. Updated: ${d.updated}, Refunded: ${d.refunded}`);
+      setSelectedIds([]);
       load(page);
     } else {
       toast.error("Bulk sync failed");
@@ -111,7 +126,7 @@ export default function AdminOrders() {
             className="h-9 gap-2 text-primary border-primary/20 hover:bg-primary/5"
           >
             {isSyncingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Sync All Orders
+            {selectedIds.length > 0 ? `Sync Selected (${selectedIds.length})` : "Sync All Orders"}
           </Button>
           <form onSubmit={handleSearch} className="flex gap-2 flex-wrap">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
@@ -145,6 +160,9 @@ export default function AdminOrders() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
+                <th className="px-3 py-3 w-8">
+                  <input type="checkbox" checked={selectedIds.length === orders.length && orders.length > 0} onChange={toggleSelectAll} className="rounded border-border" />
+                </th>
                 {["ID","User","Service","Link","Qty","Cost","Profit","Status","Date","Actions"].map(h => (
                   <th key={h} className="text-left px-3 py-3 text-xs text-muted-foreground font-medium whitespace-nowrap">{h}</th>
                 ))}
@@ -152,11 +170,14 @@ export default function AdminOrders() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" /></td></tr>
+                <tr><td colSpan={11} className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" /></td></tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">No orders found</td></tr>
+                <tr><td colSpan={11} className="text-center py-12 text-muted-foreground">No orders found</td></tr>
               ) : orders.map(o => (
-                <tr key={o.id} className="border-b border-border/30 hover:bg-secondary/20">
+                <tr key={o.id} className={`border-b border-border/30 hover:bg-secondary/20 ${selectedIds.includes(o.id) ? 'bg-primary/5' : ''}`}>
+                  <td className="px-3 py-2.5">
+                    <input type="checkbox" checked={selectedIds.includes(o.id)} onChange={() => toggleSelect(o.id)} className="rounded border-border" />
+                  </td>
                   <td className="px-3 py-2.5 font-mono text-xs">{o.external_order_id || String(o.id).slice(0,8)}</td>
                   <td className="px-3 py-2.5 text-xs">{o.user_email ?? o.user?.email ?? o.user_id?.slice(0,8)}</td>
                   <td className="px-3 py-2.5 text-xs">

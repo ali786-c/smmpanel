@@ -226,15 +226,22 @@ class AdminOrderController extends Controller
     {
         $providerUrl = config('services.provider.api_url');
         $providerKey = config('services.provider.api_key');
+        $orderIds = $request->input('order_ids');
 
         if (!$providerUrl || !$providerKey) {
             return response()->json(['error' => 'Provider not configured'], 422);
         }
 
-        $activeOrders = Order::whereIn('status', ['Pending', 'Processing', 'In progress'])
-            ->whereNotNull('external_order_id')
-            ->take(100)
-            ->get();
+        $query = Order::whereNotNull('external_order_id');
+        
+        if (is_array($orderIds) && count($orderIds) > 0) {
+            $query->whereIn('id', $orderIds);
+        } else {
+            $query->whereIn('status', ['Pending', 'Processing', 'In progress'])
+                  ->take(100);
+        }
+
+        $activeOrders = $query->get();
 
         $updated = 0;
         $refunded = 0;
