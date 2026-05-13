@@ -108,12 +108,18 @@ export default function WalletPage() {
                       placeholder="0.00"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      className="pl-10 py-7 text-2xl font-bold rounded-xl border-primary/10 focus:ring-primary bg-primary/5"
+                      className={`pl-10 py-7 text-2xl font-bold rounded-xl border-primary/10 focus:ring-primary bg-primary/5 ${amount && parseFloat(amount) < 10 ? 'border-destructive ring-1 ring-destructive' : ''}`}
                     />
                   </div>
+                  {amount && parseFloat(amount) < 10 && (
+                    <p className="text-xs text-destructive font-semibold flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+                      <Info className="w-3 h-3" />
+                      Minimum deposit amount is $10.00
+                    </p>
+                  )}
                 </div>
 
-                {eurPreview && (
+                {eurPreview && parseFloat(amount || "0") >= 10 && (
                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/20 animate-in fade-in slide-in-from-top-2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                          <ArrowRightLeft className="w-4 h-4" />
@@ -125,7 +131,7 @@ export default function WalletPage() {
 
                 <Button 
                   onClick={handleDeposit}
-                  disabled={paymentLoading || !amount}
+                  disabled={paymentLoading || !amount || parseFloat(amount) < 10}
                   className="w-full py-8 text-xl font-heading font-bold rounded-xl gradient-primary shadow-lg hover:scale-[1.01] transition-all group"
                 >
                   {paymentLoading ? (
