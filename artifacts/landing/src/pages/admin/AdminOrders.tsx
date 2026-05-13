@@ -25,7 +25,6 @@ export default function AdminOrders() {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
-  const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const perPage = 30;
 
