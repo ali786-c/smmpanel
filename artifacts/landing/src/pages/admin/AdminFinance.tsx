@@ -138,8 +138,8 @@ export default function AdminFinance() {
                     )}
                   </td>
                 </tr>
-              ))}
-              {transactions.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No transactions</td></tr>}
+                ))
+              )}
             </tbody>
           </table>
         </div>
