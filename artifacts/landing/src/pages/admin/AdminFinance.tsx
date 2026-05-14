@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { Loader2, DollarSign, TrendingUp, ArrowDownLeft, ArrowUpRight, Eye, CreditCard, User, X } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, ArrowDownLeft, ArrowUpRight, Eye, CreditCard, User, X, Search } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { Input } from "@/components/ui/input";
 
 export default function AdminFinance() {
   const [overview, setOverview] = useState<any>(null);
@@ -10,6 +11,13 @@ export default function AdminFinance() {
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [selectedTx, setSelectedTx] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+ 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     apiFetch("/admin/finance").then(r => r.ok ? r.json() : null).then(ov => {
@@ -19,16 +27,22 @@ export default function AdminFinance() {
 
   useEffect(() => {
     setLoading(true);
-    apiFetch(`/admin/finance/transactions?page=${currentPage}&per_page=25`)
+    const params = new URLSearchParams({
+      page: String(currentPage),
+      per_page: "25"
+    });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+
+    apiFetch(`/admin/finance/transactions?${params}`)
       .then(r => r.ok ? r.json() : null)
       .then(tx => {
         setTransactions(tx?.data ?? tx?.transactions ?? []);
         setLastPage(tx?.last_page ?? 1);
       })
       .finally(() => setLoading(false));
-  }, [currentPage]);
+  }, [currentPage, debouncedSearch]);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  if (loading && !transactions.length) return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   const o = overview ?? {};
   const statCards = [
@@ -75,18 +89,34 @@ export default function AdminFinance() {
       )}
 
       <div className="glass rounded-2xl p-6">
-        <h3 className="font-heading font-semibold mb-4">Recent Transactions</h3>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <h3 className="font-heading font-semibold">Recent Transactions</h3>
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by user email..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-10 rounded-xl border-border/50 bg-secondary/20 focus:ring-primary"
+            />
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-muted-foreground border-b border-border">
-                {["User","Type","Method","Amount","Status","Date", "Details"].map(h => <th key={h} className="pb-3 font-medium text-xs">{h}</th>)}
+                {["User","Type","Method","Amount","Status","Date", "Details"].map(h => <th key={h} className="pb-3 font-medium text-xs whitespace-nowrap px-2">{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {transactions.map(tx => (
-                <tr key={tx.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/20">
-                  <td className="py-3 text-xs">{tx.user_email ?? tx.user?.email ?? "—"}</td>
+              {loading && !transactions.length ? (
+                <tr><td colSpan={7} className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" /></td></tr>
+              ) : transactions.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">No transactions found</td></tr>
+              ) : (
+                transactions.map(tx => (
+                  <tr key={tx.id} className="border-b border-border/50 last:border-0 hover:bg-secondary/20">
+                    <td className="py-3 px-2 text-xs font-medium">{tx.user_email ?? tx.user?.email ?? "—"}</td>
                   <td className="py-3 capitalize text-xs">{tx.type}</td>
                   <td className="py-3 text-xs text-muted-foreground">{tx.payment_method ?? "—"}</td>
                   <td className={`py-3 font-bold text-sm ${tx.amount >= 0 ? "text-primary" : "text-destructive"}`}>
