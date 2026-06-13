@@ -232,3 +232,8 @@ MAILJET_SENDER_NAME=emazingSM
 - **Action**: Disabled the `ProviderEscalation.php` command to stop automated delay tickets and speedup pings.
 - **Action**: Modified `OrderActionController.php` to remove ticket and message creation when users request Refills, Cancellations, or Speedups.
 - **Status**: [COMPLETED] Support dashboard will now only contain tickets manually opened by users.
+
+### [2026-06-13] - Partial Refund Logic Adjustment [COMPLETED]
+- **Goal**: Limit refunds on 'Partial' orders so clicking the refund button only returns 30% of the cost.
+- **Action**: Updated `AdminOrderController.php` `refund` method to calculate and issue a 30% refund for orders with a `Partial` status when no custom amount is passed in the request.
+- **Status**: [COMPLETED] 30% partial refund limit implemented and pushed to GitHub.
