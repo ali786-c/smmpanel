@@ -87,7 +87,15 @@ class AdminOrderController extends Controller
             'reason' => 'nullable|string',
         ]);
 
-        $refundAmount = $validated['amount'] ?? $order->cost;
+        $refundAmount = $validated['amount'] ?? null;
+        if ($refundAmount === null) {
+            if (strtolower($order->status) === 'partial') {
+                $refundAmount = round($order->cost * 0.3, 4);
+            } else {
+                $refundAmount = $order->cost;
+            }
+        }
+
 
         DB::beginTransaction();
         try {
