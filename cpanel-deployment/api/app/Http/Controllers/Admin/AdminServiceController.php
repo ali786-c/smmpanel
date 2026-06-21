@@ -101,6 +101,15 @@ class AdminServiceController extends Controller
             }
 
             $markupPercent = (float) ($request->input('markup_percent', 30));
+            // Collect all provider external service IDs
+            $providerIds = [];
+            foreach ($providerServices as $ps) {
+                $externalId = (int) ($ps['service'] ?? $ps['id'] ?? 0);
+                if ($externalId) {
+                    $providerIds[] = $externalId;
+                }
+            }
+
             $created = 0;
             $updated = 0;
 
@@ -152,11 +161,30 @@ class AdminServiceController extends Controller
                 }
             }
 
+            // Cleanup orphaned services that are no longer returned by the provider
+            $orphanedServices = Service::whereNotIn('external_service_id', $providerIds)->get();
+            $deletedCount = 0;
+            $deactivatedCount = 0;
+
+            foreach ($orphanedServices as $svc) {
+                // If the service has existing orders, deactivate it to preserve history, otherwise delete it.
+                $hasOrders = DB::table('orders')->where('service_id', $svc->id)->exists();
+                if ($hasOrders) {
+                    $svc->update(['is_active' => false]);
+                    $deactivatedCount++;
+                } else {
+                    $svc->delete();
+                    $deletedCount++;
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'total' => count($providerServices),
                 'created' => $created,
                 'updated' => $updated,
+                'deleted' => $deletedCount,
+                'deactivated' => $deactivatedCount,
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Sync failed: ' . $e->getMessage()], 500);
