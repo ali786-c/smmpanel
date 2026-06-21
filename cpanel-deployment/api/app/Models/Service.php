@@ -28,4 +28,40 @@ class Service extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function isPackage(): bool
+    {
+        if ($this->min_order === 1 && $this->max_order === 1) {
+            return true;
+        }
+
+        $lowercaseName = strtolower($this->name);
+        $lowercaseCategory = strtolower($this->category);
+
+        if (str_contains($lowercaseCategory, 'subscription') || str_contains($lowercaseName, 'subscription')) {
+            return true;
+        }
+
+        if (str_contains($lowercaseCategory, 'boost') || str_contains($lowercaseName, 'boost')) {
+            if ($this->max_order <= 10) {
+                return true;
+            }
+        }
+        
+        if (str_contains($lowercaseCategory, 'package') || str_contains($lowercaseName, 'package')) {
+            if ($this->max_order <= 10) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function calculateCost(int $quantity): float
+    {
+        if ($this->isPackage()) {
+            return round($this->rate * $quantity, 4);
+        }
+        return round(($this->rate / 1000) * $quantity, 4);
+    }
 }

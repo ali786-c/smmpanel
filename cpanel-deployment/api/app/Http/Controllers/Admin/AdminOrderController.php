@@ -161,7 +161,7 @@ class AdminOrderController extends Controller
         ]);
 
         $service = Service::findOrFail($validated['service_id']);
-        $cost = $validated['cost'] ?? round(($service->rate / 1000) * $validated['quantity'], 4);
+        $cost = $validated['cost'] ?? $service->calculateCost($validated['quantity']);
 
         DB::beginTransaction();
         try {

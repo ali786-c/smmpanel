@@ -106,7 +106,7 @@ class PublicApiController extends Controller
             return response()->json(['error' => "Quantity must be between {$service->min_order} and {$service->max_order}"], 422);
         }
 
-        $cost = round(($service->rate / 1000) * $quantity, 4);
+        $cost = $service->calculateCost($quantity);
 
         $wallet = Wallet::where('user_id', $userId)->first();
         if (!$wallet || $wallet->balance < $cost) {

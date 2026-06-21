@@ -142,9 +142,29 @@ export default function NewOrder() {
   };
 
 
+  const isPackageService = (service: Service): boolean => {
+    if (service.min_order === 1 && service.max_order === 1) {
+      return true;
+    }
+    const name = (service.name || '').toLowerCase();
+    const category = (service.category || '').toLowerCase();
+    if (name.includes('subscription') || category.includes('subscription')) {
+      return true;
+    }
+    if (name.includes('boost') || category.includes('boost')) {
+      if (service.max_order <= 10) return true;
+    }
+    if (name.includes('package') || category.includes('package')) {
+      if (service.max_order <= 10) return true;
+    }
+    return false;
+  };
+
   const selectedService = useMemo(() => services.find(s => s.id === selectedServiceId) ?? null, [services, selectedServiceId]);
   const qty = parseInt(quantity) || 0;
-  const rawCost = selectedService ? (selectedService.rate / 1000) * qty : 0;
+  const rawCost = selectedService 
+    ? (isPackageService(selectedService) ? selectedService.rate * qty : (selectedService.rate / 1000) * qty)
+    : 0;
   const finalCost = Math.max(0, rawCost - couponDiscount);
   const canOrder = selectedService && link.trim() && qty >= (selectedService?.min_order ?? 1) && qty <= (selectedService?.max_order ?? 999999) && balance >= finalCost;
 

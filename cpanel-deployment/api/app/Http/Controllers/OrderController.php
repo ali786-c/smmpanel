@@ -72,7 +72,7 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $cost = round(($service->rate / 1000) * $validated['quantity'], 4);
+        $cost = $service->calculateCost($validated['quantity']);
         $providerCost = round($cost * 0.7, 4);
 
         $coupon = null;
@@ -270,7 +270,7 @@ class OrderController extends Controller
                     'error' => "Order #".($index+1).": quantity must be between {$service->min_order} and {$service->max_order}",
                 ], 422);
             }
-            $cost = round(($service->rate / 1000) * $item['quantity'], 4);
+            $cost = $service->calculateCost($item['quantity']);
             $totalCost += $cost;
             $orderItems[] = ['service' => $service, 'link' => $item['link'], 'quantity' => $item['quantity'], 'cost' => $cost];
         }
