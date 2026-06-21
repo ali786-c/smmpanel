@@ -207,7 +207,7 @@ export default function AdminOrders() {
                           {syncingId === o.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                         </Button>
                       )}
-                      {o.status !== "Cancelled" && o.status !== "Completed" && (
+                      {o.status !== "Cancelled" && o.status !== "Completed" && o.status !== "Refunded" && (
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => handleRefund(o.id)}>Refund</Button>
                       )}
                     </div>

@@ -82,6 +82,11 @@ class AdminOrderController extends Controller
     public function refund(Request $request, $id)
     {
         $order = Order::findOrFail($id);
+        
+        if (strtolower($order->status) === 'refunded') {
+            return response()->json(['error' => 'Order is already refunded.'], 400);
+        }
+
         $validated = $request->validate([
             'amount' => 'nullable|numeric|min:0',
             'reason' => 'nullable|string',
