@@ -35,8 +35,8 @@ class AdminDashboardController extends Controller
                 'total_orders' => Order::count(),
                 'active_orders' => Order::whereIn('status', ['Pending', 'In progress', 'Processing'])->count(),
                 'orders_today' => Order::whereDate('created_at', $today)->count(),
-                'total_revenue' => Order::where('status', '!=', 'Cancelled')->sum('cost'),
-                'total_profit' => DB::table('orders')->where('status', '!=', 'Cancelled')->selectRaw('COALESCE(SUM(cost - COALESCE(provider_cost, 0)), 0) as profit')->value('profit'),
+                'total_revenue' => Order::whereNotIn('status', ['Cancelled', 'Refunded'])->sum('cost'),
+                'total_profit' => DB::table('orders')->whereNotIn('status', ['Cancelled', 'Refunded'])->selectRaw('COALESCE(SUM(cost - COALESCE(provider_cost, 0)), 0) as profit')->value('profit'),
                 'revenue_today' => Order::whereDate('created_at', $today)->sum('cost'),
                 'revenue_month' => Order::where('created_at', '>=', $last30Days)->sum('cost'),
                 'total_services' => Service::count(),
@@ -59,7 +59,7 @@ class AdminDashboardController extends Controller
         $dailyRevenue = DB::table('orders')
             ->selectRaw("DATE(created_at) as date, SUM(cost) as revenue, (SUM(cost) - SUM(COALESCE(provider_cost, 0))) as profit, COUNT(*) as orders")
             ->where('created_at', '>=', now()->subDays($days))
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Refunded'])
             ->groupBy('date')
             ->orderBy('date')
             ->get()

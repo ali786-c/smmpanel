@@ -267,20 +267,6 @@ class PublicApiController extends Controller
                     ->find(trim($orderId));
 
                 if ($order) {
-                    // Refund to wallet
-                    Wallet::where('user_id', $userId)->increment('balance', $order->cost);
-                    WalletTransaction::create([
-                        'id' => (string) Str::uuid(),
-                        'user_id' => $userId,
-                        'type' => 'refund',
-                        'amount' => $order->cost,
-                        'description' => 'Order cancelled refund',
-                        'reference_id' => $order->id,
-                        'status' => 'completed',
-                        'payment_method' => 'system',
-                        'created_at' => now(),
-                    ]);
-
                     $order->update(['status' => 'Cancelled']);
                     $cancelled[] = $orderId;
                 }

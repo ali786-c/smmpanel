@@ -18,12 +18,12 @@ class AdminFinanceController extends Controller
 
         $totalRevenue = Order::whereDate('created_at', '>=', $dateFrom)
             ->whereDate('created_at', '<=', $dateTo)
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Refunded'])
             ->sum('cost');
 
         $totalProviderCost = Order::whereDate('created_at', '>=', $dateFrom)
             ->whereDate('created_at', '<=', $dateTo)
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Refunded'])
             ->sum('provider_cost');
 
         $totalDeposits = WalletTransaction::whereDate('created_at', '>=', $dateFrom)
@@ -42,7 +42,7 @@ class AdminFinanceController extends Controller
             ->selectRaw("DATE(created_at) as date, SUM(cost) as revenue, (SUM(cost) - SUM(COALESCE(provider_cost, 0))) as profit, COUNT(*) as orders")
             ->whereDate('created_at', '>=', $dateFrom)
             ->whereDate('created_at', '<=', $dateTo)
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Refunded'])
             ->groupBy('date')
             ->orderBy('date')
             ->get()

@@ -237,3 +237,12 @@ MAILJET_SENDER_NAME=emazingSM
 - **Goal**: Limit refunds on 'Partial' orders so clicking the refund button only returns 30% of the cost.
 - **Action**: Updated `AdminOrderController.php` `refund` method to calculate and issue a 30% refund for orders with a `Partial` status when no custom amount is passed in the request.
 - **Status**: [COMPLETED] 30% partial refund limit implemented and pushed to GitHub.
+
+### [2026-06-24] - Automatic Refund on Cancelled Status [COMPLETED]
+- **Goal**: Automatically refund users immediately and transition status to `Refunded` whenever an order's status is set to `Cancelled`.
+- **Action**: Added an Eloquent `updating` model hook in `Order.php` to intercept status updates to `Cancelled`.
+- **Action**: When updated to `Cancelled`, the hook issues a full wallet credit to the user, creates a `WalletTransaction`, log entry, notification, and sets the order status to `Refunded`.
+- **Action**: Cleaned up manual wallet increment logic in `PublicApiController.php` to delegate directly to this new model event.
+- **Action**: Updated admin dashboard, orders, and finance queries in `AdminDashboardController.php`, `AdminOrderController.php`, and `AdminFinanceController.php` to exclude `Refunded` orders from revenue/profit analytics now that auto-refunds are active.
+- **Status**: [COMPLETED] Automatic refund flow implemented and tested.
+

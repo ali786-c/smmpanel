@@ -47,8 +47,8 @@ class AdminOrderController extends Controller
         }
 
         $summaryQuery = (clone $query)->reorder();
-        $totalRevenue = (clone $summaryQuery)->where('status', '!=', 'Cancelled')->sum('cost');
-        $totalProfit = (clone $summaryQuery)->where('status', '!=', 'Cancelled')->sum(DB::raw('cost - COALESCE(provider_cost, 0)'));
+        $totalRevenue = (clone $summaryQuery)->whereNotIn('status', ['Cancelled', 'Refunded'])->sum('cost');
+        $totalProfit = (clone $summaryQuery)->whereNotIn('status', ['Cancelled', 'Refunded'])->sum(DB::raw('cost - COALESCE(provider_cost, 0)'));
 
         $orders = $query->paginate($request->get('per_page', 30));
 
