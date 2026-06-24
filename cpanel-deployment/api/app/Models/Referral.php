@@ -12,7 +12,7 @@ class Referral extends Model
 
     protected $fillable = [
         'id', 'referrer_id', 'referred_id', 'commission_rate',
-        'total_earnings', 'status',
+        'total_earnings', 'available_balance', 'status',
     ];
 
     protected $casts = [
