@@ -150,7 +150,7 @@ export default function AdminUserDetail() {
                   <td className="py-2.5 text-xs truncate max-w-[120px]">{o.service_name ?? o.service?.name ?? "—"}</td>
                   <td className="py-2.5 text-xs text-muted-foreground truncate max-w-[120px]">{o.link}</td>
                   <td className="py-2.5 text-xs">{o.quantity}</td>
-                  <td className="py-2.5 text-xs font-bold">${parseFloat(o.cost || 0).toFixed(2)}</td>
+                  <td className="py-2.5 text-xs font-bold">${parseFloat(o.cost || 0) > 0 && parseFloat(o.cost || 0) < 0.01 ? parseFloat(o.cost || 0).toFixed(4) : parseFloat(o.cost || 0).toFixed(2)}</td>
                   <td className="py-2.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "Completed" ? "bg-primary/20 text-primary" : o.status === "Cancelled" ? "bg-destructive/20 text-destructive" : "bg-yellow-500/20 text-yellow-400"}`}>{o.status}</span>
                   </td>

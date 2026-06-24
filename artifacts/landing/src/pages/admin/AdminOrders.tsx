@@ -189,8 +189,8 @@ export default function AdminOrders() {
                   </td>
                   <td className="px-3 py-2.5 text-xs truncate max-w-[120px] text-muted-foreground">{o.link}</td>
                   <td className="px-3 py-2.5 text-xs">{o.quantity}</td>
-                  <td className="px-3 py-2.5 text-xs font-bold">${parseFloat(o.cost || 0).toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-xs text-primary">${parseFloat(o.profit || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-xs font-bold">${parseFloat(o.cost || 0) > 0 && parseFloat(o.cost || 0) < 0.01 ? parseFloat(o.cost || 0).toFixed(4) : parseFloat(o.cost || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-xs text-primary">${parseFloat(o.profit || 0) > 0 && parseFloat(o.profit || 0) < 0.01 ? parseFloat(o.profit || 0).toFixed(4) : parseFloat(o.profit || 0).toFixed(2)}</td>
                   <td className="px-3 py-2.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status] ?? "bg-secondary text-muted-foreground"}`}>{o.status}</span>
                   </td>

@@ -111,7 +111,7 @@ export default function Orders() {
                 <td className="py-3 text-xs max-w-[150px] truncate">
                   <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{order.link}</a>
                 </td>
-                <td className="py-3 font-heading font-semibold text-xs">${Number(order.cost).toFixed(2)}</td>
+                <td className="py-3 font-heading font-semibold text-xs">${Number(order.cost) > 0 && Number(order.cost) < 0.01 ? Number(order.cost).toFixed(4) : Number(order.cost).toFixed(2)}</td>
                 <td className="py-3 text-xs">{order.start_count ?? "—"}</td>
                 <td className="py-3 text-xs">{order.quantity.toLocaleString()}</td>
                 <td className="py-3 text-xs max-w-[150px] truncate">{(order.service as any)?.name || "—"}</td>
