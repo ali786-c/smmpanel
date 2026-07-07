@@ -94,11 +94,7 @@ class AdminOrderController extends Controller
 
         $refundAmount = $validated['amount'] ?? null;
         if ($refundAmount === null) {
-            if (strtolower($order->status) === 'partial') {
-                $refundAmount = round($order->cost * 0.3, 4);
-            } else {
-                $refundAmount = $order->cost;
-            }
+            $refundAmount = round($order->cost * 0.3, 4);
         }
 
 

@@ -246,3 +246,11 @@ MAILJET_SENDER_NAME=emazingSM
 - **Action**: Updated admin dashboard, orders, and finance queries in `AdminDashboardController.php`, `AdminOrderController.php`, and `AdminFinanceController.php` to exclude `Refunded` orders from revenue/profit analytics now that auto-refunds are active.
 - **Status**: [COMPLETED] Automatic refund flow implemented and tested.
 
+### [2026-07-07] - Default Refund Logic Unified to 30% [COMPLETED]
+- **Goal**: Always default refunds to exactly 30% of the order cost, whether clicked manually in the admin dashboard or automatically triggered by order cancellation.
+- **Action**: Updated [AdminOrderController.php](file:///c:/Users/Muhammad%20Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/app/Http/Controllers/Admin/AdminOrderController.php) to default to a 30% refund for any order status when no custom amount is passed in the request.
+- **Action**: Adjusted the Eloquent model `updating` event hook in [Order.php](file:///c:/Users/Muhammad%20Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/app/Models/Order.php) to issue a 30% refund (instead of 100%) when an order status is updated to `Cancelled`.
+- **Action**: Updated client cancellation notification in [OrderActionController.php](file:///c:/Users/Muhammad%20Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/app/Http/Controllers/OrderActionController.php) to correctly display the 30% refund value to users.
+- **Status**: [COMPLETED] Unified 30% default refund logic across the backend.
+
+

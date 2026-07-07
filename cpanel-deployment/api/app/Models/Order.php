@@ -40,8 +40,10 @@ class Order extends Model
                     $order->status = 'Refunded';
                     $order->refund_status = 'refunded';
 
+                    $refundAmount = round($order->cost * 0.3, 4);
+
                     // Run refund in database transaction
-                    \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
+                    \Illuminate\Support\Facades\DB::transaction(function () use ($order, $refundAmount) {
                         $wallet = \App\Models\Wallet::firstOrCreate(
                             ['user_id' => $order->user_id],
                             [
@@ -49,13 +51,13 @@ class Order extends Model
                                 'balance' => 0,
                             ]
                         );
-                        $wallet->increment('balance', $order->cost);
+                        $wallet->increment('balance', $refundAmount);
 
                         \App\Models\WalletTransaction::create([
                             'id'             => (string) \Illuminate\Support\Str::uuid(),
                             'user_id'        => $order->user_id,
                             'type'           => 'refund',
-                            'amount'         => $order->cost,
+                            'amount'         => $refundAmount,
                             'description'    => "Refund for order #{$order->id}",
                             'reference_id'   => $order->id,
                             'payment_method' => 'system',
@@ -67,7 +69,7 @@ class Order extends Model
                             'id'       => (string) \Illuminate\Support\Str::uuid(),
                             'order_id' => $order->id,
                             'user_id'  => $order->user_id,
-                            'amount'   => $order->cost,
+                            'amount'   => $refundAmount,
                             'reason'   => 'Automated refund: order cancelled',
                             'status'   => 'completed',
                             'created_at' => now(),
@@ -77,7 +79,7 @@ class Order extends Model
                             'id' => (string) \Illuminate\Support\Str::uuid(),
                             'user_id' => $order->user_id,
                             'title' => 'Refund Processed',
-                            'message' => "\${$order->cost} has been refunded to your wallet for order #{$order->id}.",
+                            'message' => "\${$refundAmount} has been refunded to your wallet for order #{$order->id}.",
                             'type' => 'success',
                             'link' => '/dashboard/wallet',
                             'read' => false,
