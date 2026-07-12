@@ -74,7 +74,7 @@ export default function NewOrder() {
   // Auto calculate quantity from lines count for Comments and Custom Lists
   useEffect(() => {
     if (selectedService) {
-      const type = selectedService.type;
+      const type = selectedService.type || "Default";
       const isCommentsType = type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments");
       const isCustomList = type === "Mentions Custom List";
       
@@ -203,7 +203,7 @@ export default function NewOrder() {
     if (!selectedService) return false;
     if (balance < finalCost) return false;
 
-    const type = selectedService.type;
+    const type = selectedService.type || "Default";
 
     if (type === "Subscriptions") {
       const minVal = parseInt(minInput) || 0;
@@ -452,7 +452,7 @@ export default function NewOrder() {
                  selectedService.type !== "Package" && 
                  selectedService.type !== "Custom Comments" && 
                  selectedService.type !== "Comment Replies" && 
-                 !selectedService.type.includes("Comments") && 
+                 !selectedService.type?.includes("Comments") && 
                  selectedService.type !== "Mentions Custom List" && (
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider">Quantity <span className="text-primary">({selectedService.min_order} – {selectedService.max_order.toLocaleString()})</span></Label>
@@ -463,7 +463,7 @@ export default function NewOrder() {
                 {/* Read-only Quantity Display for Comments & Custom Lists */}
                 {(selectedService.type === "Custom Comments" || 
                   selectedService.type === "Comment Replies" || 
-                  selectedService.type.includes("Comments") || 
+                  selectedService.type?.includes("Comments") || 
                   selectedService.type === "Mentions Custom List") && (
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider">Quantity (Calculated from List)</Label>
@@ -473,7 +473,7 @@ export default function NewOrder() {
 
                 {/* Dynamic Extra Fields & Custom Inputs */}
                 {(() => {
-                  const type = selectedService.type;
+                  const type = selectedService.type || "Default";
 
                   if (type === "Subscriptions") {
                     return (
