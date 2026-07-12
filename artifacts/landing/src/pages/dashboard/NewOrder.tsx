@@ -71,20 +71,6 @@ export default function NewOrder() {
   const [delayInput, setDelayInput] = useState("0");
   const [answerNumberInput, setAnswerNumberInput] = useState("");
 
-  // Auto calculate quantity from lines count for Comments and Custom Lists
-  useEffect(() => {
-    if (selectedService) {
-      const type = selectedService.type || "Default";
-      const isCommentsType = type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments");
-      const isCustomList = type === "Mentions Custom List";
-      
-      if (isCommentsType || isCustomList) {
-        const lines = comments.split("\n").filter(l => l.trim().length > 0);
-        setQuantity(lines.length > 0 ? lines.length.toString() : "");
-      }
-    }
-  }, [comments, selectedService]);
-
   // Function to fetch services for a specific platform
   const fetchServices = async (platform: string, isInitial = false) => {
     if (servicesCache[platform] && !isInitial) {
@@ -242,6 +228,20 @@ export default function NewOrder() {
 
     return link.trim().length > 0 && qty >= (selectedService.min_order || 1) && qty <= (selectedService.max_order || 999999);
   }, [selectedService, balance, finalCost, link, qty, usernameInput, minInput, maxInput, postsInput, comments, answerNumberInput]);
+
+  // Auto calculate quantity from lines count for Comments and Custom Lists
+  useEffect(() => {
+    if (selectedService) {
+      const type = selectedService.type || "Default";
+      const isCommentsType = type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments");
+      const isCustomList = type === "Mentions Custom List";
+      
+      if (isCommentsType || isCustomList) {
+        const lines = comments.split("\n").filter(l => l.trim().length > 0);
+        setQuantity(lines.length > 0 ? lines.length.toString() : "");
+      }
+    }
+  }, [comments, selectedService]);
 
   const filteredByPlatform = useMemo(() => {
     if (!services || !Array.isArray(services)) return [];
