@@ -165,6 +165,7 @@ export default function NewOrder() {
 
 
   const isPackageService = (service: Service): boolean => {
+    if (!service) return false;
     if (service.min_order === 1 && service.max_order === 1) {
       return true;
     }
@@ -182,19 +183,24 @@ export default function NewOrder() {
     return false;
   };
 
-  const selectedService = useMemo(() => services.find(s => s.id === selectedServiceId) ?? null, [services, selectedServiceId]);
+  const selectedService = useMemo(() => {
+    if (!services || !Array.isArray(services)) return null;
+    return services.find(s => s && s.id === selectedServiceId) ?? null;
+  }, [services, selectedServiceId]);
+
   const qty = parseInt(quantity) || 0;
 
   const rawCost = useMemo(() => {
     if (!selectedService) return 0;
-    if (selectedService.type === "Subscriptions") {
+    const type = selectedService.type || "Default";
+    if (type === "Subscriptions") {
       const maxVal = parseInt(maxInput) || 0;
       const postsVal = parseInt(postsInput) || 0;
-      return (maxVal * postsVal * selectedService.rate) / 1000;
+      return (maxVal * postsVal * (selectedService.rate || 0)) / 1000;
     }
     return isPackageService(selectedService) 
-      ? selectedService.rate * qty 
-      : (selectedService.rate / 1000) * qty;
+      ? (selectedService.rate || 0) * qty 
+      : ((selectedService.rate || 0) / 1000) * qty;
   }, [selectedService, maxInput, postsInput, qty]);
 
   const finalCost = Math.max(0, rawCost - couponDiscount);
@@ -210,8 +216,8 @@ export default function NewOrder() {
       const maxVal = parseInt(maxInput) || 0;
       const postsVal = parseInt(postsInput) || 0;
       return usernameInput.trim().length > 0 && 
-             minVal >= selectedService.min_order && 
-             maxVal <= selectedService.max_order && 
+             minVal >= (selectedService.min_order || 1) && 
+             maxVal <= (selectedService.max_order || 999999) && 
              minVal <= maxVal && 
              postsVal > 0;
     }
@@ -227,22 +233,26 @@ export default function NewOrder() {
     }
 
     if (type === "Poll") {
-      return link.trim().length > 0 && qty >= selectedService.min_order && qty <= selectedService.max_order && answerNumberInput.trim().length > 0;
+      return link.trim().length > 0 && qty >= (selectedService.min_order || 1) && qty <= (selectedService.max_order || 999999) && answerNumberInput.trim().length > 0;
     }
 
     if (type === "Comment Likes" || type === "Mentions Username Followers" || type === "Mentions User Followers") {
-      return link.trim().length > 0 && qty >= selectedService.min_order && qty <= selectedService.max_order && usernameInput.trim().length > 0;
+      return link.trim().length > 0 && qty >= (selectedService.min_order || 1) && qty <= (selectedService.max_order || 999999) && usernameInput.trim().length > 0;
     }
 
-    return link.trim().length > 0 && qty >= selectedService.min_order && qty <= selectedService.max_order;
+    return link.trim().length > 0 && qty >= (selectedService.min_order || 1) && qty <= (selectedService.max_order || 999999);
   }, [selectedService, balance, finalCost, link, qty, usernameInput, minInput, maxInput, postsInput, comments, answerNumberInput]);
 
   const filteredByPlatform = useMemo(() => {
-    if (!selectedPlatform || selectedPlatform === "Everything") return services;
-    return services.filter(s => s.platform.toLowerCase() === selectedPlatform.toLowerCase());
+    if (!services || !Array.isArray(services)) return [];
+    const valid = services.filter(s => s && s.platform);
+    if (!selectedPlatform || selectedPlatform === "Everything") return valid;
+    return valid.filter(s => s.platform.toLowerCase() === selectedPlatform.toLowerCase());
   }, [services, selectedPlatform]);
 
-  const categories = useMemo(() => [...new Set(filteredByPlatform.map(s => s.category))], [filteredByPlatform]);
+  const categories = useMemo(() => {
+    return [...new Set(filteredByPlatform.map(s => s?.category).filter(Boolean))];
+  }, [filteredByPlatform]);
 
   const filteredServices = useMemo(() => {
     let result = filteredByPlatform;
@@ -251,14 +261,16 @@ export default function NewOrder() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return result.filter(s => 
-        s.name.toLowerCase().includes(q) || 
-        s.category.toLowerCase().includes(q) ||
-        s.external_service_id.toString().includes(q)
+        s && (
+          (s.name || '').toLowerCase().includes(q) || 
+          (s.category || '').toLowerCase().includes(q) ||
+          (s.external_service_id || '').toString().includes(q)
+        )
       );
     }
     
     if (selectedCategory) {
-      result = result.filter(s => s.category === selectedCategory);
+      result = result.filter(s => s && s.category === selectedCategory);
     }
     
     return result;
