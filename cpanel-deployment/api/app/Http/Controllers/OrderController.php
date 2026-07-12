@@ -52,10 +52,11 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'service_id' => 'required|uuid|exists:services,id',
-            'link' => 'required|string|max:2000',
-            'quantity' => 'required|integer|min:1',
+            'link' => 'nullable|string|max:2000',
+            'quantity' => 'nullable|integer',
             'comments' => 'nullable|string',
             'coupon_code' => 'nullable|string',
+            'custom_data' => 'nullable|array',
         ]);
 
         $user = auth()->user();
@@ -65,14 +66,66 @@ class OrderController extends Controller
         }
 
         $service = Service::active()->findOrFail($validated['service_id']);
+        $type = $service->type;
+        $customData = $request->input('custom_data', []);
 
-        if ($validated['quantity'] < $service->min_order || $validated['quantity'] > $service->max_order) {
-            return response()->json([
-                'error' => "Quantity must be between {$service->min_order} and {$service->max_order}",
-            ], 422);
+        if ($type === 'Subscriptions') {
+            if (empty($customData['username'])) {
+                return response()->json(['error' => 'Username is required for subscriptions'], 422);
+            }
+            if (empty($customData['min']) || empty($customData['max']) || empty($customData['posts'])) {
+                return response()->json(['error' => 'Min, Max, and Posts count are required for subscriptions'], 422);
+            }
+            
+            $validated['link'] = $customData['username'];
+            $validated['quantity'] = 1; // Default for subscriptions list row
+
+            // subscription cost: max * posts * rate / 1000
+            $cost = round((($customData['max'] * $customData['posts']) * $service->rate) / 1000, 4);
+        } else {
+            if (empty($validated['link'])) {
+                return response()->json(['error' => 'Link is required'], 422);
+            }
+
+            if ($type === 'Custom Comments' || $type === 'Comment Replies' || strpos($type, 'Comments') !== false) {
+                if (empty($validated['comments'])) {
+                    return response()->json(['error' => 'Comments are required'], 422);
+                }
+                $commentLines = array_filter(explode("\n", str_replace("\r", "", $validated['comments'])));
+                $validated['quantity'] = count($commentLines);
+            } elseif ($type === 'Mentions Custom List' || strpos($type, 'Mentions') !== false) {
+                if (strpos($type, 'Custom List') !== false && empty($validated['comments'])) {
+                    return response()->json(['error' => 'Usernames list is required'], 422);
+                }
+                if (!empty($validated['comments'])) {
+                    $usernamesList = array_filter(explode("\n", str_replace("\r", "", $validated['comments'])));
+                    if ($type === 'Mentions Custom List' || strpos($type, 'Hashtag') !== false || strpos($type, 'Media Likers') !== false || strpos($type, 'with Hashtags') !== false) {
+                        $validated['quantity'] = count($usernamesList);
+                    }
+                }
+            } elseif ($type === 'Poll') {
+                if (empty($customData['answer_number'])) {
+                    return response()->json(['error' => 'Answer number is required for polls'], 422);
+                }
+            } elseif ($type === 'Comment Likes' || $type === 'Mentions Username Followers') {
+                if (empty($customData['username'])) {
+                    return response()->json(['error' => 'Username is required'], 422);
+                }
+            }
+
+            if (empty($validated['quantity'])) {
+                return response()->json(['error' => 'Quantity is required'], 422);
+            }
+
+            if ($validated['quantity'] < $service->min_order || $validated['quantity'] > $service->max_order) {
+                return response()->json([
+                    'error' => "Quantity must be between {$service->min_order} and {$service->max_order}",
+                ], 422);
+            }
+
+            $cost = $service->calculateCost($validated['quantity']);
         }
 
-        $cost = $service->calculateCost($validated['quantity']);
         $providerCost = round($cost * 0.7, 4);
 
         $coupon = null;
@@ -101,6 +154,12 @@ class OrderController extends Controller
             $wallet->decrement('balance', $cost);
             $wallet->touch();
 
+            // Serialize custom fields to comments column for compatibility
+            $orderComments = $validated['comments'] ?? null;
+            if ($type === 'Subscriptions' || $type === 'Poll' || $type === 'Comment Likes' || $type === 'Mentions Username Followers') {
+                $orderComments = json_encode($customData);
+            }
+
             // Create order
             $order = Order::create([
                 'id' => $orderId,
@@ -108,7 +167,7 @@ class OrderController extends Controller
                 'service_id' => $service->id,
                 'link' => $validated['link'],
                 'quantity' => $validated['quantity'],
-                'comments' => $validated['comments'] ?? null,
+                'comments' => $orderComments,
                 'cost' => $cost,
                 'provider_cost' => $providerCost,
                 'status' => 'Pending',
@@ -136,7 +195,6 @@ class OrderController extends Controller
             // Send to provider in background (non-blocking)
             $this->sendToProvider($order, $service);
 
-            // Process referral commission via DB trigger would handle this
             // Create notification
             Notification::create([
                 'id' => (string) Str::uuid(),
@@ -170,21 +228,44 @@ class OrderController extends Controller
                 'key'      => $providerKey,
                 'action'   => 'add',
                 'service'  => $service->external_service_id,
-                'link'     => $order->link,
-                'quantity' => $order->quantity,
             ];
 
-            // Add extra fields based on service type
             $type = $service->type;
-            if ($type === 'Custom Comments' || $type === 'Comment Replies' || strpos($type, 'Comments') !== false) {
-                $params['comments'] = $order->comments;
-            } elseif (strpos($type, 'Mentions') !== false) {
-                $params['usernames'] = $order->comments;
-            } elseif ($type === 'Poll') {
-                $params['answer_number'] = $order->comments;
+
+            if ($type === 'Subscriptions') {
+                $details = json_decode($order->comments, true) ?? [];
+                $params['username'] = $details['username'] ?? $order->link;
+                $params['min'] = $details['min'] ?? 0;
+                $params['max'] = $details['max'] ?? 0;
+                $params['posts'] = $details['posts'] ?? 0;
+                if (isset($details['delay'])) {
+                    $params['delay'] = $details['delay'];
+                }
+            } else {
+                $params['link'] = $order->link;
+
+                if ($type === 'Custom Comments' || $type === 'Comment Replies' || strpos($type, 'Comments') !== false) {
+                    $params['comments'] = $order->comments;
+                } elseif (strpos($type, 'Mentions') !== false) {
+                    $params['usernames'] = $order->comments;
+                    if ($type !== 'Mentions Custom List') {
+                        $params['quantity'] = $order->quantity;
+                    }
+                } elseif ($type === 'Poll') {
+                    $details = json_decode($order->comments, true) ?? [];
+                    $params['answer_number'] = $details['answer_number'] ?? $order->comments;
+                    $params['quantity'] = $order->quantity;
+                } elseif ($type === 'Comment Likes' || $type === 'Mentions Username Followers') {
+                    $details = json_decode($order->comments, true) ?? [];
+                    $params['username'] = $details['username'] ?? $order->comments;
+                    $params['quantity'] = $order->quantity;
+                } else {
+                    $params['quantity'] = $order->quantity;
+                }
             }
 
             $response = Http::timeout(15)->asForm()->post($providerUrl, $params);
+
 
             $data = $response->json() ?? [];
             if (isset($data['order'])) {

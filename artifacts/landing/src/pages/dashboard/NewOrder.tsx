@@ -63,6 +63,28 @@ export default function NewOrder() {
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
+  // Dynamic input fields states
+  const [usernameInput, setUsernameInput] = useState("");
+  const [minInput, setMinInput] = useState("");
+  const [maxInput, setMaxInput] = useState("");
+  const [postsInput, setPostsInput] = useState("");
+  const [delayInput, setDelayInput] = useState("0");
+  const [answerNumberInput, setAnswerNumberInput] = useState("");
+
+  // Auto calculate quantity from lines count for Comments and Custom Lists
+  useEffect(() => {
+    if (selectedService) {
+      const type = selectedService.type;
+      const isCommentsType = type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments");
+      const isCustomList = type === "Mentions Custom List";
+      
+      if (isCommentsType || isCustomList) {
+        const lines = comments.split("\n").filter(l => l.trim().length > 0);
+        setQuantity(lines.length > 0 ? lines.length.toString() : "");
+      }
+    }
+  }, [comments, selectedService]);
+
   // Function to fetch services for a specific platform
   const fetchServices = async (platform: string, isInitial = false) => {
     if (servicesCache[platform] && !isInitial) {
@@ -162,11 +184,58 @@ export default function NewOrder() {
 
   const selectedService = useMemo(() => services.find(s => s.id === selectedServiceId) ?? null, [services, selectedServiceId]);
   const qty = parseInt(quantity) || 0;
-  const rawCost = selectedService 
-    ? (isPackageService(selectedService) ? selectedService.rate * qty : (selectedService.rate / 1000) * qty)
-    : 0;
+
+  const rawCost = useMemo(() => {
+    if (!selectedService) return 0;
+    if (selectedService.type === "Subscriptions") {
+      const maxVal = parseInt(maxInput) || 0;
+      const postsVal = parseInt(postsInput) || 0;
+      return (maxVal * postsVal * selectedService.rate) / 1000;
+    }
+    return isPackageService(selectedService) 
+      ? selectedService.rate * qty 
+      : (selectedService.rate / 1000) * qty;
+  }, [selectedService, maxInput, postsInput, qty]);
+
   const finalCost = Math.max(0, rawCost - couponDiscount);
-  const canOrder = selectedService && link.trim() && qty >= (selectedService?.min_order ?? 1) && qty <= (selectedService?.max_order ?? 999999) && balance >= finalCost;
+
+  const canOrder = useMemo(() => {
+    if (!selectedService) return false;
+    if (balance < finalCost) return false;
+
+    const type = selectedService.type;
+
+    if (type === "Subscriptions") {
+      const minVal = parseInt(minInput) || 0;
+      const maxVal = parseInt(maxInput) || 0;
+      const postsVal = parseInt(postsInput) || 0;
+      return usernameInput.trim().length > 0 && 
+             minVal >= selectedService.min_order && 
+             maxVal <= selectedService.max_order && 
+             minVal <= maxVal && 
+             postsVal > 0;
+    }
+
+    const isCommentsType = type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments");
+    const isCustomList = type === "Mentions Custom List";
+
+    if (isCommentsType) {
+      return link.trim().length > 0 && comments.trim().length > 0 && qty > 0;
+    }
+    if (isCustomList) {
+      return link.trim().length > 0 && comments.trim().length > 0 && qty > 0;
+    }
+
+    if (type === "Poll") {
+      return link.trim().length > 0 && qty >= selectedService.min_order && qty <= selectedService.max_order && answerNumberInput.trim().length > 0;
+    }
+
+    if (type === "Comment Likes" || type === "Mentions Username Followers" || type === "Mentions User Followers") {
+      return link.trim().length > 0 && qty >= selectedService.min_order && qty <= selectedService.max_order && usernameInput.trim().length > 0;
+    }
+
+    return link.trim().length > 0 && qty >= selectedService.min_order && qty <= selectedService.max_order;
+  }, [selectedService, balance, finalCost, link, qty, usernameInput, minInput, maxInput, postsInput, comments, answerNumberInput]);
 
   const filteredByPlatform = useMemo(() => {
     if (!selectedPlatform || selectedPlatform === "Everything") return services;
@@ -235,7 +304,37 @@ export default function NewOrder() {
     if (!selectedService || !canOrder) return;
     setSubmitting(true);
     try {
-      const body: any = { service_id: selectedService.id, link: link.trim(), quantity: qty, comments: comments.trim() };
+      const type = selectedService.type;
+      const body: any = { 
+        service_id: selectedService.id, 
+        link: type === "Subscriptions" ? usernameInput.trim() : link.trim(), 
+        quantity: type === "Subscriptions" ? 1 : qty 
+      };
+
+      if (type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments")) {
+        body.comments = comments.trim();
+      } else if (type === "Mentions Custom List" || type.includes("Mentions")) {
+        body.comments = comments.trim();
+      }
+
+      if (type === "Subscriptions") {
+        body.custom_data = {
+          username: usernameInput.trim(),
+          min: parseInt(minInput),
+          max: parseInt(maxInput),
+          posts: parseInt(postsInput),
+          delay: parseInt(delayInput) || 0
+        };
+      } else if (type === "Poll") {
+        body.custom_data = {
+          answer_number: answerNumberInput.trim()
+        };
+      } else if (type === "Comment Likes" || type === "Mentions Username Followers" || type === "Mentions User Followers") {
+        body.custom_data = {
+          username: usernameInput.trim()
+        };
+      }
+
       if (dripFeed && dripRuns && dripInterval) { body.runs = parseInt(dripRuns); body.interval = parseInt(dripInterval); }
       if (couponApplied) body.coupon_code = couponApplied;
       const res = await apiFetch("/orders", { method: "POST", body: JSON.stringify(body) });
@@ -340,56 +439,131 @@ export default function NewOrder() {
 
             {selectedService && (
               <div className="glass rounded-2xl p-5 space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Link</Label>
-                  <Input value={link} onChange={e => setLink(e.target.value)} placeholder="https://..." className="bg-secondary/50" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Quantity <span className="text-primary">({selectedService.min_order} – {selectedService.max_order.toLocaleString()})</span></Label>
-                  <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} min={selectedService.min_order} max={selectedService.max_order} placeholder={String(selectedService.min_order)} className="bg-secondary/50" />
-                </div>
+                {/* Standard Link Input (Hidden for Subscriptions) */}
+                {selectedService.type !== "Subscriptions" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Link</Label>
+                    <Input value={link} onChange={e => setLink(e.target.value)} placeholder="https://..." className="bg-secondary/50" />
+                  </div>
+                )}
 
-                {/* Dynamic Extra Fields */}
+                {/* Standard Quantity Input (Hidden for Subscriptions, Packages, Custom Comments & Custom List) */}
+                {selectedService.type !== "Subscriptions" && 
+                 selectedService.type !== "Package" && 
+                 selectedService.type !== "Custom Comments" && 
+                 selectedService.type !== "Comment Replies" && 
+                 !selectedService.type.includes("Comments") && 
+                 selectedService.type !== "Mentions Custom List" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Quantity <span className="text-primary">({selectedService.min_order} – {selectedService.max_order.toLocaleString()})</span></Label>
+                    <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} min={selectedService.min_order} max={selectedService.max_order} placeholder={String(selectedService.min_order)} className="bg-secondary/50" />
+                  </div>
+                )}
+
+                {/* Read-only Quantity Display for Comments & Custom Lists */}
+                {(selectedService.type === "Custom Comments" || 
+                  selectedService.type === "Comment Replies" || 
+                  selectedService.type.includes("Comments") || 
+                  selectedService.type === "Mentions Custom List") && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Quantity (Calculated from List)</Label>
+                    <Input type="number" value={quantity} disabled className="bg-secondary/50 opacity-70" />
+                  </div>
+                )}
+
+                {/* Dynamic Extra Fields & Custom Inputs */}
                 {(() => {
-                  const type = selectedService?.type;
-                  if (!type || type === "Default" || type === "Package") return null;
+                  const type = selectedService.type;
 
-                  let label = "Extra Data";
-                  let placeholder = "Enter required data...";
-                  let isTextarea = true;
-
-                  if (type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments")) {
-                    label = "Comments (1 per line)";
-                    placeholder = "Enter comments here, one per line...";
-                  } else if (type.includes("Mentions")) {
-                    label = "Usernames (1 per line)";
-                    placeholder = "Enter usernames here, one per line...";
-                  } else if (type === "Poll") {
-                    label = "Answer Number";
-                    placeholder = "e.g. 1";
-                    isTextarea = false;
+                  if (type === "Subscriptions") {
+                    return (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Profile Username</Label>
+                          <Input value={usernameInput} onChange={e => setUsernameInput(e.target.value)} placeholder="e.g. instagram_user" className="bg-secondary/50" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Min Likes/Views</Label>
+                            <Input type="number" value={minInput} onChange={e => setMinInput(e.target.value)} placeholder={String(selectedService.min_order)} className="bg-secondary/50" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Max Likes/Views</Label>
+                            <Input type="number" value={maxInput} onChange={e => setMaxInput(e.target.value)} placeholder="1000" className="bg-secondary/50" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Number of Posts</Label>
+                            <Input type="number" value={postsInput} onChange={e => setPostsInput(e.target.value)} placeholder="5" className="bg-secondary/50" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Delay</Label>
+                            <select
+                              value={delayInput}
+                              onChange={e => setDelayInput(e.target.value)}
+                              className="flex h-11 w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <option value="0">No Delay</option>
+                              <option value="5">5 Minutes</option>
+                              <option value="10">10 Minutes</option>
+                              <option value="15">15 Minutes</option>
+                              <option value="30">30 Minutes</option>
+                              <option value="60">60 Minutes</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    );
                   }
 
-                  return (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{label}</Label>
-                      {isTextarea ? (
+                  if (type === "Custom Comments" || type === "Comment Replies" || type.includes("Comments")) {
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Comments (1 per line)</Label>
                         <textarea 
                           value={comments} 
                           onChange={e => setComments(e.target.value)} 
-                          placeholder={placeholder}
+                          placeholder="Enter comments here, one per line..."
                           className="flex min-h-[120px] w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         />
-                      ) : (
-                        <Input 
+                      </div>
+                    );
+                  }
+
+                  if (type === "Mentions Custom List" || type === "Mentions Hashtag" || type === "Mentions Media Likers" || type === "Mentions with Hashtags") {
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Usernames / Hashtags (1 per line)</Label>
+                        <textarea 
                           value={comments} 
                           onChange={e => setComments(e.target.value)} 
-                          placeholder={placeholder}
-                          className="bg-secondary/50"
+                          placeholder="Enter usernames/hashtags, one per line..."
+                          className="flex min-h-[120px] w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         />
-                      )}
-                    </div>
-                  );
+                      </div>
+                    );
+                  }
+
+                  if (type === "Poll") {
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Option Number</Label>
+                        <Input value={answerNumberInput} onChange={e => setAnswerNumberInput(e.target.value)} placeholder="e.g. 1" className="bg-secondary/50" />
+                      </div>
+                    );
+                  }
+
+                  if (type === "Comment Likes" || type === "Mentions Username Followers" || type === "Mentions User Followers") {
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Target / Source Username</Label>
+                        <Input value={usernameInput} onChange={e => setUsernameInput(e.target.value)} placeholder="e.g. instagram_user" className="bg-secondary/50" />
+                      </div>
+                    );
+                  }
+
+                  return null;
                 })()}
 
                 {/* Drip Feed */}
