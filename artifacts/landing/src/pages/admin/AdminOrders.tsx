@@ -11,6 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
   "Cancelled": "bg-destructive/20 text-destructive",
   "Pending": "bg-yellow-500/20 text-yellow-400",
   "Partial": "bg-orange-500/20 text-orange-400",
+  "Refunded": "bg-purple-500/20 text-purple-400",
 };
 
 export default function AdminOrders() {
@@ -131,7 +132,8 @@ export default function AdminOrders() {
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
               className="h-9 rounded-xl border border-border bg-background text-sm px-3 text-foreground">
               <option value="all">All Statuses</option>
-              {["Pending","In progress","Completed","Cancelled","Partial"].map(s => <option key={s} value={s}>{s}</option>)}
+              {["Pending","In progress","Completed","Cancelled","Partial","Refunded"].map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="stuck">Stuck (3+ Days)</option>
             </select>
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user, link, ID…" className="w-48 h-9 text-sm" />
             <Button type="submit" size="sm" variant="outline"><Search className="w-4 h-4" /></Button>

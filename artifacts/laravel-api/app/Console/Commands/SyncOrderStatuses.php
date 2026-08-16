@@ -74,6 +74,83 @@ class SyncOrderStatuses extends Command
         }
 
         $this->info("Sync complete. Updated: {$updated}, Errors: {$errors}");
+
+        // Process stuck orders (stuck for more than 3 days)
+        $stuckOrders = Order::with(['user.wallet'])
+            ->whereIn('status', ['Pending', 'In progress', 'Processing'])
+            ->where('created_at', '<=', now()->subDays(3))
+            ->get();
+
+        if ($stuckOrders->isNotEmpty()) {
+            $this->info("Processing auto-refunds for {$stuckOrders->count()} stuck orders...");
+            
+            foreach ($stuckOrders as $order) {
+                try {
+                    // Refund amount is 70% of cost (provider_cost)
+                    // If provider_cost is missing or 0, fallback to 70% of cost
+                    $refundAmount = $order->provider_cost;
+                    if ($refundAmount === null || (float) $refundAmount <= 0) {
+                        $refundAmount = round($order->cost * 0.7, 4);
+                    }
+
+                    if ($refundAmount > 0) {
+                        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $refundAmount) {
+                            $wallet = \App\Models\Wallet::firstOrCreate(
+                                ['user_id' => $order->user_id],
+                                [
+                                    'id'      => (string) \Illuminate\Support\Str::uuid(),
+                                    'balance' => 0,
+                                ]
+                            );
+                            $wallet->increment('balance', $refundAmount);
+
+                            \App\Models\WalletTransaction::create([
+                                'id'             => (string) \Illuminate\Support\Str::uuid(),
+                                'user_id'        => $order->user_id,
+                                'type'           => 'refund',
+                                'amount'         => $refundAmount,
+                                'description'    => "Auto-refund (Stuck >3 Days) for order #{$order->id}",
+                                'reference_id'   => $order->id,
+                                'payment_method' => 'system',
+                                'status'         => 'completed',
+                                'created_at'     => now(),
+                            ]);
+
+                            \App\Models\RefundLog::create([
+                                'id'       => (string) \Illuminate\Support\Str::uuid(),
+                                'order_id' => $order->id,
+                                'user_id'  => $order->user_id,
+                                'amount'   => $refundAmount,
+                                'reason'   => 'Automated refund: stuck for >3 days',
+                                'status'   => 'completed',
+                                'created_at' => now(),
+                            ]);
+
+                            \App\Models\Notification::create([
+                                'id' => (string) \Illuminate\Support\Str::uuid(),
+                                'user_id' => $order->user_id,
+                                'title' => 'Stuck Order Refunded',
+                                'message' => "Order #{$order->id} was stuck for >3 days. \${$refundAmount} (cost minus commission) has been refunded to your wallet.",
+                                'type' => 'info',
+                                'link' => '/dashboard/wallet',
+                                'read' => false,
+                                'created_at' => now(),
+                            ]);
+                        });
+                    }
+
+                    $order->update([
+                        'status' => 'Refunded',
+                        'refund_status' => 'refunded',
+                        'notes' => trim(($order->notes ? $order->notes . "\n" : '') . '[Auto-Refund] Stuck for more than 3 days')
+                    ]);
+
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("Failed to process auto-refund for stuck order {$order->id}: " . $e->getMessage());
+                }
+            }
+        }
+
         return Command::SUCCESS;
     }
 

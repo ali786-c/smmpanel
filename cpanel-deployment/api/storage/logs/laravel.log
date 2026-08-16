@@ -2166,3 +2166,35 @@ CONTEXT:  unnamed portal parameter $2 = '...' at /home/runner/workspace/artifact
 #41 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/artisan(16): Illuminate/Foundation/Application->handleCommand(Object(Symfony/Component/Console/Input/ArgvInput))
 #42 {main}
 "} 
+[2026-08-16 10:45:50] local.ERROR: could not find driver {"exception":"[object] (PDOException(code: 0): could not find driver at C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php:66)
+[stacktrace]
+#0 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php(66): PDO->__construct('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#1 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php(44): Illuminate/Database/Connectors/Connector->createPdoConnection('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#2 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/MySqlConnector.php(24): Illuminate/Database/Connectors/Connector->createConnection('mysql:host=127....', Array, Array)
+#3 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php(186): Illuminate/Database/Connectors/MySqlConnector->connect(Array)
+#4 [internal function]: Illuminate/Database/Connectors/ConnectionFactory->Illuminate/Database/Connectors/{closure}()
+#5 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connection.php(1257): call_user_func(Object(Closure))
+#6 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connection.php(1545): Illuminate/Database/Connection->getPdo()
+#7 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php(154): Illuminate/Database/Connection->executeBeginTransactionStatement()
+#8 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php(130): Illuminate/Database/Connection->createTransaction()
+#9 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(491): Illuminate/Database/Connection->beginTransaction()
+#10 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate/Database/DatabaseManager->__call('beginTransactio...', Array)
+#11 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/test_stuck_orders.php(23): Illuminate/Support/Facades/Facade::__callStatic('beginTransactio...', Array)
+#12 {main}
+"} 
+[2026-08-16 10:46:04] local.ERROR: SQLSTATE[HY000] [1049] Unknown database 'hussain_smm' {"exception":"[object] (PDOException(code: 1049): SQLSTATE[HY000] [1049] Unknown database 'hussain_smm' at C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php:66)
+[stacktrace]
+#0 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php(66): PDO->__construct('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#1 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php(44): Illuminate/Database/Connectors/Connector->createPdoConnection('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#2 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/MySqlConnector.php(24): Illuminate/Database/Connectors/Connector->createConnection('mysql:host=127....', Array, Array)
+#3 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php(186): Illuminate/Database/Connectors/MySqlConnector->connect(Array)
+#4 [internal function]: Illuminate/Database/Connectors/ConnectionFactory->Illuminate/Database/Connectors/{closure}()
+#5 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connection.php(1257): call_user_func(Object(Closure))
+#6 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Connection.php(1545): Illuminate/Database/Connection->getPdo()
+#7 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php(154): Illuminate/Database/Connection->executeBeginTransactionStatement()
+#8 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php(130): Illuminate/Database/Connection->createTransaction()
+#9 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(491): Illuminate/Database/Connection->beginTransaction()
+#10 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate/Database/DatabaseManager->__call('beginTransactio...', Array)
+#11 C:/Users/Muhammad Aliyan/Desktop/Laravel-Migration/Laravel-Migration/Laravel-Migration/cpanel-deployment/api/test_stuck_orders.php(23): Illuminate/Support/Facades/Facade::__callStatic('beginTransactio...', Array)
+#12 {main}
+"} 

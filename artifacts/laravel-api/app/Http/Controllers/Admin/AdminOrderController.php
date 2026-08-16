@@ -26,7 +26,12 @@ class AdminOrderController extends Controller
             ->orderByDesc('created_at');
 
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            if ($request->status === 'stuck') {
+                $query->whereIn('status', ['Pending', 'Processing', 'In progress'])
+                      ->where('created_at', '<=', now()->subDays(3));
+            } else {
+                $query->where('status', $request->status);
+            }
         }
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
