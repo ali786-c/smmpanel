@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Layers, TrendingUp, Ticket,
   ArrowLeft, LogOut, Shield, Activity, Menu, X,
   ShoppingCart, FileText, DollarSign as DollarSignIcon, Megaphone,
-  Tag, Percent, Wifi, History, Settings, Zap
+  Tag, Percent, Wifi, History, Settings, Zap, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -17,6 +17,7 @@ import {
 const adminNavItems = [
   { icon: LayoutDashboard,  label: "Overview",       path: "/admin" },
   { icon: ShoppingCart,     label: "Orders",         path: "/admin/orders" },
+  { icon: Clock,            label: "Stuck Orders",   path: "/admin/orders?status=stuck" },
   { icon: ShoppingCart,     label: "Create Order",   path: "/admin/create-order" },
   { icon: Users,            label: "Users",          path: "/admin/users" },
   { icon: Layers,           label: "Services",       path: "/admin/services" },
@@ -76,7 +77,9 @@ export default function AdminLayout() {
       <p className="text-xs text-muted-foreground px-2 mb-4">{adminEmail || "Management Console"}</p>
       <nav className="flex-1 space-y-0.5 overflow-y-auto">
         {adminNavItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = item.path.includes('?') 
+            ? (location.pathname + location.search) === item.path
+            : location.pathname === item.path && location.search === '';
           return (
             <Link key={item.path} to={item.path}
               className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all ${

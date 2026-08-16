@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminOrders() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [revenue, setRevenue] = useState(0);
@@ -71,7 +73,25 @@ export default function AdminOrders() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  // Watch searchParams to sync dropdown filter state
+  useEffect(() => {
+    const status = searchParams.get("status") ?? "all";
+    setStatusFilter(status);
+  }, [searchParams]);
+
+  // Load orders when statusFilter or page changes
+  useEffect(() => {
+    load(page);
+  }, [statusFilter, page]);
+
+  const handleStatusFilterChange = (newStatus: string) => {
+    if (newStatus === "all") {
+      setSearchParams({});
+    } else {
+      setSearchParams({ status: newStatus });
+    }
+    setPage(1);
+  };
 
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setPage(1); load(1); };
 
@@ -129,7 +149,7 @@ export default function AdminOrders() {
             {selectedIds.length > 0 ? `Sync Selected (${selectedIds.length})` : "Sync All Orders"}
           </Button>
           <form onSubmit={handleSearch} className="flex gap-2 flex-wrap">
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            <select value={statusFilter} onChange={e => handleStatusFilterChange(e.target.value)}
               className="h-9 rounded-xl border border-border bg-background text-sm px-3 text-foreground">
               <option value="all">All Statuses</option>
               {["Pending","In progress","Completed","Cancelled","Partial","Refunded"].map(s => <option key={s} value={s}>{s}</option>)}
