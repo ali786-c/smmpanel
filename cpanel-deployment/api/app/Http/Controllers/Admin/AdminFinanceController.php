@@ -88,7 +88,7 @@ class AdminFinanceController extends Controller
 
     public function refunds(Request $request)
     {
-        $query = RefundLog::with(['user:id,email', 'order:id,link,status'])
+        $query = RefundLog::with(['user:id,email', 'order:id,link,status,external_order_id'])
             ->orderByDesc('created_at');
 
         if ($request->has('status')) {

@@ -47,7 +47,7 @@ export default function AdminRefunds() {
                 <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">No refunds yet</td></tr>
               ) : refunds.map(r => (
                 <tr key={r.id} className="border-b border-border/30 hover:bg-secondary/20">
-                  <td className="px-4 py-3 font-mono text-xs">{String(r.order_id ?? "—").slice(0, 8)}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{r.order?.external_order_id || String(r.order_id ?? "—").slice(0, 8)}</td>
                   <td className="px-4 py-3 text-xs">{r.user_email ?? r.user?.email ?? "—"}</td>
                   <td className="px-4 py-3 text-xs font-bold text-destructive">${parseFloat(r.amount ?? 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[150px]">{r.reason ?? "—"}</td>
