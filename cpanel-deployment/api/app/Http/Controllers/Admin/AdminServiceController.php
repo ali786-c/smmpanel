@@ -225,10 +225,10 @@ class AdminServiceController extends Controller
         ]);
 
         $query = Service::query();
-        if ($request->has('platform')) {
+        if ($request->filled('platform')) {
             $query->where('platform', $request->platform);
         }
-        if ($request->has('category')) {
+        if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
 

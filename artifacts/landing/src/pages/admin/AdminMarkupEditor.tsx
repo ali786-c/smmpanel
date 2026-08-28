@@ -19,6 +19,14 @@ export default function AdminMarkupEditor() {
         const unique = [...new Set(services.map((s: any) => s.platform).filter(Boolean))] as string[];
         setPlatforms(unique.sort());
       });
+
+    apiFetch("/admin/settings/markup_percent")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && d.value !== null && d.value !== undefined) {
+          setMarkupPercent(String(d.value));
+        }
+      });
   }, []);
 
   const handleApplyMarkup = async (e: React.FormEvent) => {
@@ -27,7 +35,7 @@ export default function AdminMarkupEditor() {
     const body: any = { markup_percent: parseFloat(markupPercent) };
     if (platform) body.platform = platform;
     const res = await apiFetch("/admin/services/markup", { method: "POST", body: JSON.stringify(body) });
-    if (res.ok) { const d = await res.json(); toast.success(`Markup applied to ${d.updated ?? "all"} services`); }
+    if (res.ok) { const d = await res.json(); toast.success(`Markup applied to ${d.updated_count ?? "all"} services`); }
     else { const e = await res.json(); toast.error(e.message ?? "Failed to apply markup"); }
     setLoading(false);
   };
