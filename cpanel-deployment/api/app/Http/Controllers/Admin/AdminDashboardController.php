@@ -35,10 +35,10 @@ class AdminDashboardController extends Controller
                 'total_orders' => Order::count(),
                 'active_orders' => Order::whereIn('status', ['Pending', 'In progress', 'Processing'])->count(),
                 'orders_today' => Order::whereDate('created_at', $today)->count(),
-                'total_revenue' => Order::whereNotIn('status', ['Cancelled', 'Refunded'])->sum('cost'),
-                'total_profit' => DB::table('orders')->whereNotIn('status', ['Cancelled', 'Refunded'])->selectRaw('COALESCE(SUM(cost - COALESCE(provider_cost, 0)), 0) as profit')->value('profit'),
-                'revenue_today' => Order::whereDate('created_at', $today)->sum('cost'),
-                'revenue_month' => Order::where('created_at', '>=', $last30Days)->sum('cost'),
+                'total_revenue' => Order::where('status', '!=', 'Cancelled')->selectRaw("COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost END), 0) as total_rev")->value('total_rev'),
+                'total_profit' => DB::table('orders')->where('status', '!=', 'Cancelled')->selectRaw("COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost - COALESCE(provider_cost, 0) END), 0) as profit")->value('profit'),
+                'revenue_today' => Order::whereDate('created_at', $today)->where('status', '!=', 'Cancelled')->selectRaw("COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost END), 0) as rev")->value('rev'),
+                'revenue_month' => Order::where('created_at', '>=', $last30Days)->where('status', '!=', 'Cancelled')->selectRaw("COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost END), 0) as rev")->value('rev'),
                 'total_services' => Service::count(),
                 'active_services' => Service::where('is_active', true)->count(),
                 'pending_tickets' => Ticket::where('status', '!=', 'closed')->count(),
@@ -57,9 +57,12 @@ class AdminDashboardController extends Controller
     {
         $days = 30;
         $dailyRevenue = DB::table('orders')
-            ->selectRaw("DATE(created_at) as date, SUM(cost) as revenue, (SUM(cost) - SUM(COALESCE(provider_cost, 0))) as profit, COUNT(*) as orders")
+            ->selectRaw("DATE(created_at) as date,
+                         COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost END), 0) as revenue,
+                         COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost - COALESCE(provider_cost, 0) END), 0) as profit,
+                         COUNT(*) as orders")
             ->where('created_at', '>=', now()->subDays($days))
-            ->whereNotIn('status', ['Cancelled', 'Refunded'])
+            ->where('status', '!=', 'Cancelled')
             ->groupBy('date')
             ->orderBy('date')
             ->get()

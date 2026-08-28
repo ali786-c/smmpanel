@@ -21,6 +21,12 @@ class Order extends Model
 
     public function getProfitAttribute()
     {
+        if ($this->status === 'Refunded') {
+            return round((float) $this->cost * 0.3, 4);
+        }
+        if ($this->status === 'Cancelled') {
+            return 0.0;
+        }
         return (float) $this->cost - (float) ($this->provider_cost ?? 0);
     }
 
@@ -37,7 +43,7 @@ class Order extends Model
         static::updating(function ($order) {
             if ($order->isDirty('status') && $order->status === 'Cancelled') {
                 if ($order->refund_status !== 'refunded' && $order->cost > 0) {
-                    $refundAmount = round($order->cost * 0.3, 4);
+                    $refundAmount = round($order->cost * 0.7, 4);
 
                     if ($refundAmount < 1.0) {
                         // Auto-refund for amounts less than $1.00

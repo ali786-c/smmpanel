@@ -90,13 +90,13 @@ class OrderActionController extends Controller
         ]);
         */
 
-        $refundAmount = round($order->cost * 0.3, 4);
+        $refundAmount = round($order->cost * 0.7, 4);
         Notification::create([
             'id'         => (string) Str::uuid(),
             'user_id'    => $user->id,
             'title'      => $immediateResult['success'] ? 'Order Cancelled' : 'Cancellation Request Submitted',
             'message'    => $immediateResult['success']
-                ? "Order cancelled. \${$refundAmount} (30% partial refund) will be refunded to your wallet."
+                ? "Order cancelled. \${$refundAmount} (70% partial refund) will be refunded to your wallet."
                 : "Your cancellation request is being processed. We'll notify you once it's confirmed.",
             'type'       => $immediateResult['success'] ? 'success' : 'info',
             'link'       => "#", // Link disabled as no ticket is created

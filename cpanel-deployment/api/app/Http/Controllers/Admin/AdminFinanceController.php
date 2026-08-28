@@ -18,8 +18,9 @@ class AdminFinanceController extends Controller
 
         $totalRevenue = Order::whereDate('created_at', '>=', $dateFrom)
             ->whereDate('created_at', '<=', $dateTo)
-            ->whereNotIn('status', ['Cancelled', 'Refunded'])
-            ->sum('cost');
+            ->where('status', '!=', 'Cancelled')
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost END), 0) as total_rev")
+            ->value('total_rev') ?? 0;
 
         $totalProviderCost = Order::whereDate('created_at', '>=', $dateFrom)
             ->whereDate('created_at', '<=', $dateTo)
@@ -39,10 +40,13 @@ class AdminFinanceController extends Controller
         $totalWalletBalance = Wallet::sum('balance');
 
         $dailyRevenue = \Illuminate\Support\Facades\DB::table('orders')
-            ->selectRaw("DATE(created_at) as date, SUM(cost) as revenue, (SUM(cost) - SUM(COALESCE(provider_cost, 0))) as profit, COUNT(*) as orders")
+            ->selectRaw("DATE(created_at) as date,
+                         COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost END), 0) as revenue,
+                         COALESCE(SUM(CASE WHEN status = 'Refunded' THEN cost * 0.3 ELSE cost - COALESCE(provider_cost, 0) END), 0) as profit,
+                         COUNT(*) as orders")
             ->whereDate('created_at', '>=', $dateFrom)
             ->whereDate('created_at', '<=', $dateTo)
-            ->whereNotIn('status', ['Cancelled', 'Refunded'])
+            ->where('status', '!=', 'Cancelled')
             ->groupBy('date')
             ->orderBy('date')
             ->get()
