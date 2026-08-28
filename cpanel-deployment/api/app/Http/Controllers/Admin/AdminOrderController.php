@@ -129,7 +129,10 @@ class AdminOrderController extends Controller
                 'created_at' => now(),
             ]);
 
-            $order->update(['status' => 'Refunded']);
+            $order->update([
+                'status' => 'Refunded',
+                'refund_status' => 'refunded'
+            ]);
 
             Notification::create([
                 'id' => (string) Str::uuid(),

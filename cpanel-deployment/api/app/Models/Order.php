@@ -37,55 +37,61 @@ class Order extends Model
         static::updating(function ($order) {
             if ($order->isDirty('status') && $order->status === 'Cancelled') {
                 if ($order->refund_status !== 'refunded' && $order->cost > 0) {
-                    $order->status = 'Refunded';
-                    $order->refund_status = 'refunded';
-
                     $refundAmount = round($order->cost * 0.3, 4);
 
-                    // Run refund in database transaction
-                    \Illuminate\Support\Facades\DB::transaction(function () use ($order, $refundAmount) {
-                        $wallet = \App\Models\Wallet::firstOrCreate(
-                            ['user_id' => $order->user_id],
-                            [
-                                'id'      => (string) \Illuminate\Support\Str::uuid(),
-                                'balance' => 0,
-                            ]
-                        );
-                        $wallet->increment('balance', $refundAmount);
+                    if ($refundAmount < 1.0) {
+                        // Auto-refund for amounts less than $1.00
+                        $order->status = 'Refunded';
+                        $order->refund_status = 'refunded';
 
-                        \App\Models\WalletTransaction::create([
-                            'id'             => (string) \Illuminate\Support\Str::uuid(),
-                            'user_id'        => $order->user_id,
-                            'type'           => 'refund',
-                            'amount'         => $refundAmount,
-                            'description'    => "Refund for order #{$order->id}",
-                            'reference_id'   => $order->id,
-                            'payment_method' => 'system',
-                            'status'         => 'completed',
-                            'created_at'     => now(),
-                        ]);
+                        // Run refund in database transaction
+                        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $refundAmount) {
+                            $wallet = \App\Models\Wallet::firstOrCreate(
+                                ['user_id' => $order->user_id],
+                                [
+                                    'id'      => (string) \Illuminate\Support\Str::uuid(),
+                                    'balance' => 0,
+                                ]
+                            );
+                            $wallet->increment('balance', $refundAmount);
 
-                        \App\Models\RefundLog::create([
-                            'id'       => (string) \Illuminate\Support\Str::uuid(),
-                            'order_id' => $order->id,
-                            'user_id'  => $order->user_id,
-                            'amount'   => $refundAmount,
-                            'reason'   => 'Automated refund: order cancelled',
-                            'status'   => 'completed',
-                            'created_at' => now(),
-                        ]);
+                            \App\Models\WalletTransaction::create([
+                                'id'             => (string) \Illuminate\Support\Str::uuid(),
+                                'user_id'        => $order->user_id,
+                                'type'           => 'refund',
+                                'amount'         => $refundAmount,
+                                'description'    => "Refund for order #{$order->id}",
+                                'reference_id'   => $order->id,
+                                'payment_method' => 'system',
+                                'status'         => 'completed',
+                                'created_at'     => now(),
+                            ]);
 
-                        \App\Models\Notification::create([
-                            'id' => (string) \Illuminate\Support\Str::uuid(),
-                            'user_id' => $order->user_id,
-                            'title' => 'Refund Processed',
-                            'message' => "\${$refundAmount} has been refunded to your wallet for order #{$order->id}.",
-                            'type' => 'success',
-                            'link' => '/dashboard/wallet',
-                            'read' => false,
-                            'created_at' => now(),
-                        ]);
-                    });
+                            \App\Models\RefundLog::create([
+                                'id'       => (string) \Illuminate\Support\Str::uuid(),
+                                'order_id' => $order->id,
+                                'user_id'  => $order->user_id,
+                                'amount'   => $refundAmount,
+                                'reason'   => 'Automated refund: order cancelled',
+                                'status'   => 'completed',
+                                'created_at' => now(),
+                            ]);
+
+                            \App\Models\Notification::create([
+                                'id' => (string) \Illuminate\Support\Str::uuid(),
+                                'user_id' => $order->user_id,
+                                'title' => 'Refund Processed',
+                                'message' => "\${$refundAmount} has been refunded to your wallet for order #{$order->id}.",
+                                'type' => 'success',
+                                'link' => '/dashboard/wallet',
+                                'read' => false,
+                                'created_at' => now(),
+                            ]);
+                        });
+                    } else {
+                        // Do not auto-refund if amount is $1.00 or more
+                        $order->refund_status = 'pending_manual';
+                    }
                 } else {
                     $order->status = 'Refunded';
                     $order->refund_status = 'refunded';
