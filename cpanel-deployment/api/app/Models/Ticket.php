@@ -23,6 +23,28 @@ class Ticket extends Model
         'provider_escalated' => 'boolean',
     ];
 
+    protected $appends = ['linked_order_external_ids', 'order_external_id'];
+
+    public function getOrderExternalIdAttribute()
+    {
+        if (empty($this->order_id)) {
+            return null;
+        }
+        return \App\Models\Order::where('id', $this->order_id)->value('external_order_id');
+    }
+
+    public function getLinkedOrderExternalIdsAttribute()
+    {
+        $ids = $this->linked_orders;
+        if (empty($ids)) {
+            return [];
+        }
+        return \App\Models\Order::whereIn('id', $ids)
+            ->whereNotNull('external_order_id')
+            ->pluck('external_order_id')
+            ->toArray();
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

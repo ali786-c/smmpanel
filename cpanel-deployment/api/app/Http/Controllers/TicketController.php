@@ -25,14 +25,14 @@ class TicketController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'subject'   => 'required|string|max:255',
-            'message'   => 'nullable|string',
-            'content'   => 'nullable|string',
-            'priority'  => 'nullable|in:low,normal,medium,high',
-            'category'  => 'nullable|string|max:100',
-            'order_id'  => 'nullable|exists:orders,id',
-            'order_ids' => 'nullable|array',
-            'order_ids.*' => 'exists:orders,id',
+            'subject'     => 'required|string|max:255',
+            'message'     => 'nullable|string',
+            'content'     => 'nullable|string',
+            'priority'    => 'nullable|in:low,normal,medium,high',
+            'category'    => 'nullable|string|max:100',
+            'order_id'    => 'nullable|exists:orders,id',
+            'order_ids'   => 'required|array|min:1',
+            'order_ids.*' => 'required|exists:orders,id',
         ]);
 
         $body = $validated['message'] ?? $validated['content'] ?? '';

@@ -122,7 +122,9 @@ export default function Tickets() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Linked Orders ({selectedOrders.length} selected)</label>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              Linked Orders <span className="text-primary font-bold">*</span> ({selectedOrders.length} selected — at least 1 required)
+            </label>
             <div className="glass bg-secondary/30 rounded-xl border border-border/50 max-h-48 overflow-y-auto p-2 space-y-1">
                 {orders.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-4">No recent orders found</p>
@@ -152,7 +154,7 @@ export default function Tickets() {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={createTicket} disabled={creating || !newSubject.trim() || !newMessage.trim()} className="gradient-primary text-primary-foreground min-w-[140px]">
+            <Button onClick={createTicket} disabled={creating || !newSubject.trim() || !newMessage.trim() || selectedOrders.length === 0} className="gradient-primary text-primary-foreground min-w-[140px]">
               {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Submit Ticket
             </Button>
             <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
